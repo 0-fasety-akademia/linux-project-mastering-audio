@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+import os
+import sys
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+for cand in (os.path.join(HERE, "..", "src"), "/usr/share/linux-project-mastering-audio/src"):
+    if os.path.isdir(os.path.join(cand, "pma")):
+        sys.path.insert(0, os.path.abspath(cand))
+        break
+
+if __name__ == "__main__":
+    if "--icon-sync-watch" in sys.argv:
+        from pma import iconsync
+        iconsync.watch()
+    elif "--icon-sync" in sys.argv:
+        from pma import iconsync
+        print(iconsync.apply())
+    elif "--version" in sys.argv:
+        from pma import VERSION
+        print(VERSION)
+    else:
+        from pma.app import main
+        sys.exit(main())

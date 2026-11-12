@@ -77,8 +77,10 @@ po kodowaniu MP3/MP4 i zapis plików. Przy starcie jest schowany – otwiera si�
 
 ## Instalacja
 
+Najnowszy plik `linux-project-mastering-audio_<wersja>_all.deb` pobierz ze [strony Releases](https://github.com/jgu-linux-apps/linux-project-mastering-audio/releases/latest):
+
 ```bash
-sudo apt install ./linux-project-mastering-audio_0.2.3_all.deb
+sudo apt install ./linux-project-mastering-audio_<wersja>_all.deb
 ```
 
 Wymagania: Ubuntu 24.04+ (libadwaita ≥ 1.5). Zależności instalują się same: GTK4/libadwaita, GStreamer,
@@ -91,6 +93,10 @@ linux-project-mastering-audio pliki*.wav       # otwórz z plikami (trafiają do
 ```
 
 ## Budowanie ze źródeł
+
+Kod źródłowy jest w katalogu `src/` repozytorium; paczek `.deb` nie ma w gicie, są w [Releases](https://github.com/jgu-linux-apps/linux-project-mastering-audio/releases).
+Wypchnięcie tagu `vX.Y.Z` zgodnego z `VERSION` w `src/src/pma/__init__.py` uruchamia GitHub Actions
+(`.github/workflows/release.yml`), które budują paczkę i publikują wydanie. Polecenia uruchamiaj w `src/`:
 
 ```bash
 python3 tools/make_assets.py data          # ikony + ekran startowy
@@ -105,6 +111,7 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 ## Historia wersji
 
+- **0.2.4** – bez zmian w aplikacji: kod w repozytorium w katalogu `src/`, paczka `.deb` na stronie GitHub Releases (budowana automatycznie dla każdego tagu wersji); README: instalacja z Releases.
 - **0.2.3** – mini-terminal schowany przy starcie, otwiera się dopiero po kliknięciu ikony.
 - **0.2.2** – podpis „made by: JGu / Supported by Claude” na ekranie startowym i w „O programie”; poprawna odmiana liczebników (1 utwór, 4 utwory, 5 utworów; 1 track / 2 tracks) i przecinek dziesiętny w polskiej wersji.
 - **0.2.1** – nazwa **Linux Project Mastering Audio** wszędzie (ekran startowy, okno, menu, raport); mini-terminal z podglądem pracy silnika; w raporcie albumu kolumna „Refren”.

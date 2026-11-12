@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Project Mastering Audio – icon theme sync
+Comment=Switches the app icon between dark and light with the system theme
+Exec=linux-project-mastering-audio --icon-sync-watch
+TryExec=linux-project-mastering-audio
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=3

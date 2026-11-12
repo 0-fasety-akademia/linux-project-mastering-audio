@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bgAdark" cx="50%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#1A2140"/><stop offset="1" stop-color="#06080F"/>
+    </radialGradient>
+    <linearGradient id="neonAdark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00E5FF"/><stop offset=".55" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#FF3EA5"/>
+    </linearGradient>
+    <linearGradient id="neonhAdark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00E5FF"/><stop offset=".55" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#FF3EA5"/>
+    </linearGradient>
+    <filter id="glowAdark" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="58" fill="url(#bgAdark)" stroke="#2A3358" stroke-width="2"/>
+  <path d="M67.2,188.8 A86,86 0 1 1 188.8,188.8" fill="none" stroke="#3B4570" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+  <path d="M67.2,188.8 A86,86 0 1 1 212.7,113.1" fill="none" stroke="url(#neonAdark)" stroke-width="10" stroke-linecap="round" stroke-dasharray="7 6" filter="url(#glowAdark)"/>
+  <circle cx="128" cy="128" r="66" fill="none" stroke="url(#neonAdark)" stroke-width="2" opacity=".6"/>
+  <polyline points="58.0,128.0 59.2,128.0 60.3,127.9 61.5,127.6 62.7,127.2 63.8,126.6 65.0,125.9 66.2,125.1 67.3,124.3 68.5,123.5 69.7,122.9 70.8,122.5 72.0,122.3 73.2,122.5 74.3,123.1 75.5,124.2 76.7,125.7 77.8,127.7 79.0,130.0 80.2,132.7 81.3,135.6 82.5,138.6 83.7,141.5 84.8,144.3 86.0,146.7 87.2,148.6 88.3,149.9 89.5,150.4 90.7,150.1 91.8,148.9 93.0,146.7 94.2,143.6 95.3,139.6 96.5,134.9 97.7,129.6 98.8,123.9 100.0,117.9 101.2,111.9 102.3,106.2 103.5,100.9 104.7,96.4 105.8,92.7 107.0,90.2 108.2,89.0 109.3,89.1 110.5,90.6 111.7,93.4 112.8,97.6 114.0,103.0 115.2,109.5 116.3,116.7 117.5,124.5 118.7,132.6 119.8,140.7 121.0,148.5 122.2,155.6 123.3,161.9 124.5,167.0 125.7,170.9 126.8,173.2 128.0,174.0 129.2,173.2 130.3,170.9 131.5,167.0 132.7,161.9 133.8,155.6 135.0,148.5 136.2,140.7 137.3,132.6 138.5,124.5 139.7,116.7 140.8,109.5 142.0,103.0 143.2,97.6 144.3,93.4 145.5,90.6 146.7,89.1 147.8,89.0 149.0,90.2 150.2,92.7 151.3,96.4 152.5,100.9 153.7,106.2 154.8,111.9 156.0,117.9 157.2,123.9 158.3,129.6 159.5,134.9 160.7,139.6 161.8,143.6 163.0,146.7 164.2,148.9 165.3,150.1 166.5,150.4 167.7,149.9 168.8,148.6 170.0,146.7 171.2,144.3 172.3,141.5 173.5,138.6 174.7,135.6 175.8,132.7 177.0,130.0 178.2,127.7 179.3,125.7 180.5,124.2 181.7,123.1 182.8,122.5 184.0,122.3 185.2,122.5 186.3,122.9 187.5,123.5 188.7,124.3 189.8,125.1 191.0,125.9 192.2,126.6 193.3,127.2 194.5,127.6 195.7,127.9 196.8,128.0 198.0,128.0" fill="none" stroke="url(#neonhAdark)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowAdark)"/>
+  <circle cx="212.7" cy="113.1" r="7" fill="#FF3EA5" filter="url(#glowAdark)"/>
+</svg>
