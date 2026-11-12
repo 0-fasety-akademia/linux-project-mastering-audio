@@ -111,6 +111,7 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 ## Historia wersji
 
+- **0.2.5** – licencja: aplikacja jest teraz na licencji Freeware License (No Modifications), zob. `LICENSE` — darmowe użytkowanie i udostępnianie bez zmian, bez prawa do modyfikacji; poza tym bez zmian w aplikacji.
 - **0.2.4** – bez zmian w aplikacji: kod w repozytorium w katalogu `src/`, paczka `.deb` na stronie GitHub Releases (budowana automatycznie dla każdego tagu wersji); README: instalacja z Releases.
 - **0.2.3** – mini-terminal schowany przy starcie, otwiera się dopiero po kliknięciu ikony.
 - **0.2.2** – podpis „made by: JGu / Supported by Claude” na ekranie startowym i w „O programie”; poprawna odmiana liczebników (1 utwór, 4 utwory, 5 utworów; 1 track / 2 tracks) i przecinek dziesiętny w polskiej wersji.

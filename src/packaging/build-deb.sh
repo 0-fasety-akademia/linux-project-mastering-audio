@@ -21,12 +21,7 @@ install -m 644 data/autostart/$PKG-iconsync.desktop "$ROOT/etc/xdg/autostart/"
 install -m 644 data/icons/app-dark.svg "$ROOT/usr/share/icons/hicolor/scalable/apps/$APP_ID.svg"
 install -m 644 data/icons/hicolor/symbolic/apps/$APP_ID-symbolic.svg "$ROOT/usr/share/icons/hicolor/symbolic/apps/"
 install -m 644 README.md "$ROOT/usr/share/doc/$PKG/"
-cat > "$ROOT/usr/share/doc/$PKG/copyright" <<EOF
-Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: $PKG
-Files: *
-Copyright: $(date +%Y) Jaro
-EOF
+install -m 644 LICENSE "$ROOT/usr/share/doc/$PKG/copyright"
 
 SIZE=$(du -sk "$ROOT/usr" "$ROOT/etc" | awk '{s+=$1} END {print s}')
 cat > "$ROOT/DEBIAN/control" <<EOF
