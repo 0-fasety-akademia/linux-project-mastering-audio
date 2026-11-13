@@ -97,6 +97,7 @@ MP3 and MP4 files are checked **after encoding** and corrected automatically if 
 Menu (☰) → **Theme** – switches live, no restart, and is remembered:
 
 - **System** – the standard Ubuntu/GNOME look (light or dark like the system),
+- **Aurora** – pastel glass in light mode, an aurora glow on deep navy in dark mode; follows the system light/dark setting,
 - **Neon Studio** – dark glass and the cyan → violet → pink gradient of the app icon, glowing bars and meters,
 - **Hologram** – a cockpit HUD: grid, sharp edges, fixed-width digits, segmented meters,
 - **Analog console** – graphite and amber, hardware-style buttons, needle VU meters in A/B,
@@ -156,6 +157,7 @@ live GStreamer mixer and A/B player), `tests/` (test track generators).
 
 ## Version history
 
+- **0.5.2** – new **Aurora** theme (menu → Theme): pastel glass in light mode, an aurora glow on deep navy in dark mode; unlike the other themes it follows the system light/dark setting by itself. Chart bars and A/B meters use its cyan → violet → pink gradient.
 - **0.5.1** – Vocals: new **AUTO-TUNE** option – hard pitch correction to the nearest semitone (own TD-PSOLA engine,
   no extra libraries); the **MANUAL** tile moved to the end. New **Studio Pro (ergonomic)** theme. README in English only.
 - **0.5.0** – Album: **mastering preview** – 20 s of the loudest part of a chosen track with the selected mastering and

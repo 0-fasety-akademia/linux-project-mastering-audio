@@ -10,7 +10,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gtk  # noqa: E402
 
-ORDER = ["system", "neon", "holo", "analog", "pro"]
+ORDER = ["system", "aurora", "neon", "holo", "analog", "pro"]
 DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "themes")
 
 # kolory Adwaity nadpisywane przez motyw
@@ -45,12 +45,16 @@ PALETTE = {
                  font="Monospace", radius=0.0, glow=True, meter="segments"),
     "analog": dict(before=(0.94, 0.89, 0.78, 0.16), after=[(1.0, 0.71, 0.28)], target=(0.85, 0.27, 0.20),
                    font="Sans", radius=2.0, glow=False, meter="vu"),
+    # Aurora: jasny/ciemny według systemu (jedyny motyw, który nie wymusza ciemnego)
+    "aurora": dict(before=None, after=[(0.13, 0.83, 0.93), (0.545, 0.36, 1.0), (0.93, 0.28, 0.6)],
+                   target=(1.0, 0.61, 0.24), font="Sans", radius=6.0, glow=False, meter="neon"),
     "pro": dict(before=(0.878, 0.886, 0.902, 0.10), after=[(0.851, 0.608, 0.149)], target=(0.231, 0.604, 0.698),
                 font="Sans", radius=2.0, glow=False, meter="zones", outline=True, tnum=True,
                 grid=(0.220, 0.235, 0.267), label=(0.541, 0.561, 0.596)),
 }
 
 CURRENT = "system"
+_dark_hook = 0
 _provider = None
 _listeners = []
 
@@ -87,7 +91,17 @@ def apply(key):
         Gtk.StyleContext.remove_provider_for_display(display, _provider)
         _provider = None
     sm = Adw.StyleManager.get_default()
-    if key != "system":
+    if key == "aurora":
+        from . import aurora_css
+        sm.set_color_scheme(Adw.ColorScheme.DEFAULT)
+        css = aurora_css.css_for(sm.get_dark())
+        _provider = Gtk.CssProvider()
+        _provider.load_from_string(css) if hasattr(_provider, "load_from_string") else _provider.load_from_data(css, -1)
+        Gtk.StyleContext.add_provider_for_display(display, _provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1)
+        global _dark_hook
+        if not _dark_hook:                    # zmiana jasny/ciemny w systemie -> przelicz Aurorę
+            _dark_hook = sm.connect("notify::dark", lambda *_: CURRENT == "aurora" and apply("aurora"))
+    elif key != "system":
         _provider = Gtk.CssProvider()
         _provider.load_from_string(css_for(key)) if hasattr(_provider, "load_from_string") \
             else _provider.load_from_data(css_for(key), -1)

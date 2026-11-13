@@ -339,6 +339,7 @@ S["pl"].update({
     "theme_holo": "Hologram",
     "theme_analog": "Konsola analogowa",
     "theme_pro": "Studio Pro (ergonomiczny)",
+    "theme_aurora": "Aurora (jasny/ciemny jak system)",
 })
 S["en"].update({
     "a_master": "Mix mastering",
@@ -453,6 +454,7 @@ S["en"].update({
     "theme_holo": "Hologram",
     "theme_analog": "Analog console",
     "theme_pro": "Studio Pro (ergonomic)",
+    "theme_aurora": "Aurora (light/dark like the system)",
 })
 
 
