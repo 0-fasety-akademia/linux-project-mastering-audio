@@ -2,6 +2,7 @@
 + efekty (pogłos / echo) renderowane OSOBNO jako ścieżka „wet”, żeby suwak efektu
 i suwak głośności działały na żywo, a scalenie dawało identyczny wynik."""
 import hashlib
+import json
 import math
 import os
 import time
@@ -62,8 +63,64 @@ PRESETS = {
         deess=4.0, comp_thr=-27, comp_ratio=5.0, attack_ms=3, release_ms=70, saturation=0.3,
         reverb=dict(size_s=0.6, predelay_ms=10, damp_hz=8000, mix=0.6),
         delay=dict(time_ms=90, feedback=0.0, pingpong=False, mix=0.45), fx_default=12),
+    "pop": VocalPreset(
+        "pop", hp=100, eq=[("peak", 250, -2.0, 1.1), ("peak", 3000, 2.5, 1.0), ("high", 12000, 3.5, 0.7)],
+        deess=4.5, comp_thr=-26, comp_ratio=4.0, attack_ms=5, release_ms=100, saturation=0.15,
+        reverb=dict(size_s=1.4, predelay_ms=20, damp_hz=8000, mix=0.8),
+        delay=dict(time_ms=180, feedback=0.15, pingpong=False, mix=0.35), fx_default=22),
+    "acoustic": VocalPreset(
+        "acoustic", hp=80, eq=[("peak", 250, -1.0, 1.0), ("peak", 3500, 1.0, 1.0), ("high", 12000, 1.5, 0.7)],
+        deess=6.5, comp_thr=-22, comp_ratio=2.0, attack_ms=15, release_ms=160, saturation=0.05,
+        reverb=dict(size_s=1.6, predelay_ms=20, damp_hz=7000, mix=1.0), delay={}, fx_default=18),
+    "rnb": VocalPreset(
+        "rnb", hp=85, eq=[("peak", 200, 1.0, 0.9), ("peak", 500, -1.5, 1.2), ("peak", 3500, 1.5, 1.0),
+                          ("high", 11000, 2.0, 0.7)],
+        deess=5.0, comp_thr=-25, comp_ratio=3.5, attack_ms=10, release_ms=150, saturation=0.25,
+        reverb=dict(size_s=2.6, predelay_ms=40, damp_hz=6000, mix=1.0),
+        delay=dict(time_ms=330, feedback=0.3, pingpong=True, mix=0.4), fx_default=30),
+    "podcast": VocalPreset(
+        "podcast", hp=90, eq=[("peak", 300, -2.5, 1.2), ("peak", 3000, 2.0, 1.0), ("high", 10000, 1.0, 0.7)],
+        deess=4.0, comp_thr=-28, comp_ratio=4.0, attack_ms=5, release_ms=80, saturation=0.1,
+        reverb={}, delay={}, fx_default=0),
+    "lofi": VocalPreset(
+        "lofi", hp=200, eq=[("peak", 1000, 2.0, 0.8), ("high", 7000, -6.0, 0.7)],
+        deess=6.0, comp_thr=-26, comp_ratio=4.0, attack_ms=10, release_ms=120, saturation=0.5,
+        reverb=dict(size_s=0.8, predelay_ms=10, damp_hz=4000, mix=0.7),
+        delay=dict(time_ms=250, feedback=0.25, pingpong=False, mix=0.4), fx_default=25),
 }
-PRESET_ORDER = ["studio", "radio", "warm", "space", "rap"]
+PRESET_ORDER = ["studio", "radio", "warm", "space", "rap", "pop", "acoustic", "rnb", "podcast", "lofi", "manual"]
+
+# MANUAL: suwaki w kaflach (zakładka Wokal). Wartości startowe = „Studio”.
+MANUAL_DEFAULT = dict(lowcut=90.0, body=0.0, mud=-2.0, presence=2.0, air=2.5,
+                      deess=50.0, comp_thr=-24.0, comp_ratio=3.0, attack=8.0, release=120.0, saturation=10.0,
+                      reverb_size=1.3, predelay=25.0, echo_ms=0.0, echo_fb=0.0)
+# (klucz, min, max, krok) – zakresy suwaków
+MANUAL_RANGES = {
+    "lowcut": (40, 250, 5), "body": (-6, 6, 0.5), "mud": (-8, 4, 0.5), "presence": (-6, 8, 0.5), "air": (-6, 8, 0.5),
+    "deess": (0, 100, 5), "comp_thr": (-40, -10, 1), "comp_ratio": (1, 8, 0.5), "attack": (1, 50, 1),
+    "release": (40, 400, 10), "saturation": (0, 60, 1),
+    "reverb_size": (0, 4, 0.1), "predelay": (0, 100, 5), "echo_ms": (0, 600, 10), "echo_fb": (0, 0.7, 0.05),
+}
+
+
+def manual_preset(m):
+    """Słownik z suwaków -> VocalPreset. Pogłos 0 s i echo 0 ms = wyłączone."""
+    m = {**MANUAL_DEFAULT, **(m or {})}
+    reverb = dict(size_s=m["reverb_size"], predelay_ms=m["predelay"], damp_hz=7000, mix=1.0) \
+        if m["reverb_size"] >= 0.2 else {}
+    delay = dict(time_ms=m["echo_ms"], feedback=m["echo_fb"], pingpong=m["echo_fb"] > 0.2, mix=0.5) \
+        if m["echo_ms"] >= 20 else {}
+    return VocalPreset(
+        "manual", hp=m["lowcut"],
+        eq=[("peak", 200, m["body"], 0.9), ("peak", 350, m["mud"], 1.2), ("peak", 3500, m["presence"], 1.0),
+            ("high", 12000, m["air"], 0.7)],
+        deess=9.0 - 0.07 * m["deess"] if m["deess"] > 0 else 60.0,     # 100% -> próg 2 dB, 0% -> praktycznie wyłączony
+        comp_thr=m["comp_thr"], comp_ratio=m["comp_ratio"], attack_ms=m["attack"], release_ms=m["release"],
+        saturation=m["saturation"] / 100.0, reverb=reverb, delay=delay, fx_default=20)
+
+
+def get_preset(key, manual=None):
+    return manual_preset(manual) if key == "manual" else PRESETS[key]
 
 
 def fx_gain(fx):
@@ -193,9 +250,11 @@ def load_vocal(path, fs_target=None):
     return x, fs
 
 
-def render_track(path, preset_key, fs_target):
-    """Renderuje (z cache) suchą i mokrą wersję ścieżki. Zwraca (dry.wav, wet.wav, sekundy)."""
-    key = hashlib.sha1(f"{path}|{os.path.getmtime(path)}|{preset_key}|{fs_target}|v1".encode()).hexdigest()[:16]
+def render_track(path, preset_key, fs_target, manual=None):
+    """Renderuje (z cache) suchą i mokrą wersję ścieżki. Zwraca (dry.wav, wet.wav, sekundy).
+    preset_key == 'manual' -> ustawienia z suwaków (słownik `manual`, wchodzi do klucza cache)."""
+    extra = json.dumps({**MANUAL_DEFAULT, **(manual or {})}, sort_keys=True) if preset_key == "manual" else ""
+    key = hashlib.sha1(f"{path}|{os.path.getmtime(path)}|{preset_key}|{fs_target}|{extra}|v1".encode()).hexdigest()[:16]
     d = os.path.join(CACHE, key)
     dry_p, wet_p = os.path.join(d, "dry.wav"), os.path.join(d, "wet.wav")
     name = os.path.basename(path)
@@ -208,7 +267,7 @@ def render_track(path, preset_key, fs_target):
     x, fs = load_vocal(path, fs_target)
     L.log(f"{name}: wczytano {len(x) / fs:.1f} s, {dsp.integrated_lufs(x, fs):.1f} LUFS, "
           f"szczyt {dsp.true_peak_db(x):.1f} dBTP", tag="vocal")
-    p = PRESETS[preset_key]
+    p = get_preset(preset_key, manual)
     dry = process_dry(x, fs, p, name)
     wet = render_wet(dry, fs, p, name)
     sf.write(dry_p + ".tmp.wav", dry, fs, subtype="FLOAT")

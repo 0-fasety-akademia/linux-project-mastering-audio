@@ -26,6 +26,17 @@ To nie jest drugi Audacity – tylko to, co potrzebne.
    | **Ciepły** | miękki, pełny, lekkie nasycenie | aksamitny, dłuższy pogłos (28%) |
    | **Przestrzeń** | dużo powietrza | duży pogłos + echo ping-pong (40%) |
    | **Rap** | twardy, wyraźny, blisko | sucho, bardzo krótkie echo (12%) |
+   | **Pop** | jasny i do przodu, gęsta kompresja | pogłos + krótkie echo (22%) |
+   | **Akustyczny** | naturalny, lekka kompresja | mała sala (18%) |
+   | **R&B / Soul** | ciepły i gładki | długi pogłos + echo ping-pong (30%) |
+   | **Mowa** | podcast, lektor – sucho i wyraźnie | bez efektu (0%) |
+   | **Lo-fi** | wąskie pasmo, nasycenie, vintage | mały pogłos + echo (25%) |
+   | **MANUAL** | wszystko ustawiasz sam suwakami | – |
+
+   Po wyborze **MANUAL** pod ścieżkami pojawiają się kafle z suwakami (2–4 w rzędzie, zależnie od szerokości okna):
+   **Barwa (EQ)** – filtr dołu, ciało 200 Hz, błoto 350 Hz, obecność 3,5 kHz, powietrze 12 kHz;
+   **Kompresja** – próg, stopień, atak, powrót; **De-esser i nasycenie**; **Przestrzeń** – pogłos, jego opóźnienie,
+   echo i powtórzenia echa. Zmiany słychać po ok. sekundzie od puszczenia suwaka; ustawienia są zapamiętywane.
 
    Każda opcja to: filtr dolnozaporowy, korekcja „błota” i obecności, **de-esser** (przycisza syczące s/sz/cz – dwa przebiegi),
    kompresja, nasycenie, blask w górze pasma, a efekt (pogłos/echo) jest wysyłany po filtrze, jak w profesjonalnym miksie.
@@ -55,6 +66,8 @@ już słuchałeś, jest natychmiastowy (cache można bezpiecznie usuwać).
    - Apple Music (−16 LUFS) – szczyty do −1 dBTP
    - CD / sklep (−10 LUFS) – szczyty do **−2 dBTP**
    - Głośno – klub, rap (−8 LUFS) – szczyty do **−2 dBTP**
+   - **Własny (MANUAL)** – wpisujesz poziom od −30 do −5 LUFS (pod polem jest podpowiedź z typowymi wartościami);
+     pułap −1 dBTP do −14 LUFS włącznie, głośniej −2 dBTP
 
    Głośne mastery po przekodowaniu w serwisach (Ogg, AAC, Opus) zyskują wyższe szczyty, dlatego dostają 1 dB więcej zapasu
    (tak zaleca Spotify dla materiału głośniejszego niż −14 LUFS).
@@ -68,7 +81,9 @@ już słuchałeś, jest natychmiastowy (cache można bezpiecznie usuwać).
    i to, o ile dB limiter ściął szczyty). Jeśli w którymś utworze ściął więcej niż 3 dB, aplikacja ostrzega – master może brzmieć płasko.
 8. **Odsłuch A/B** (po normalizacji): wybierasz utwór i przełączasz **A · oryginał** / **B · po** w trakcie odtwarzania.
    Obie wersje grają z **tą samą głośnością** (głośniejsza jest ściszana), więc słychać tylko różnicę brzmienia –
-   bez złudzenia, że „głośniej = lepiej”.
+   bez złudzenia, że „głośniej = lepiej”. Pod odtwarzaczem dokładny pomiar wg EBU R128 dla A i B jednocześnie:
+   głośność **chwilowa** (400 ms), **krótkookresowa** (3 s) i **zintegrowana**, odświeżana co 100 ms;
+   kolumna słyszanej wersji jest podświetlona, a miernik pokazuje jej głośność chwilową.
 
 Bez masteringu brzmienie się nie zmienia: tylko wzmocnienie + ochrona szczytów (miękki clipper i limiter true-peak).
 MP3 i MP4 są sprawdzane **po zakodowaniu** i w razie przesteru automatycznie poprawiane.
@@ -132,7 +147,11 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 ## Historia wersji
 
-- **0.3.0** – zakładka Album: **mastering miksu** (Delikatny, Ciepły, Nowoczesny, Mocny), **pułap szczytów zależny od celu**
+- **0.4.0** – zakładka Wokal: 5 nowych opcji (Pop, Akustyczny, R&B / Soul, Mowa, Lo-fi) i **MANUAL** z kaflami suwaków
+  (EQ, kompresja, de-esser i nasycenie, przestrzeń), szersza strona; Album: **własny poziom docelowy (MANUAL)**
+  z podpowiedzią, **dokładny pomiar LUFS na żywo w A/B** (chwilowa / krótkookresowa / zintegrowana), krótkie nazwy
+  na listach z opisem pod spodem (bez uciętych „…”), nazwy plików wokalu w dwóch liniach. Oraz wszystko poniżej
+  (wersja 0.3.0 nie była publikowana): zakładka Album: **mastering miksu** (Delikatny, Ciepły, Nowoczesny, Mocny), **pułap szczytów zależny od celu**
   (−2 dBTP dla CD i „Głośno”), **wykres płyty** (LUFS przed/po, LRA), **odsłuch A/B z wyrównaną głośnością**,
   w raporcie LRA i ścięcie limitera z ostrzeżeniem powyżej 3 dB; typograficzny minus w liczbach (−2,0 dBTP);
   poprawiona statystyka kompresora w logu; link do strony projektu w „O programie” i w paczce;
@@ -158,15 +177,17 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 **Linux Project Mastering Audio** – two tabs:
 
-- **Vocals:** drop 1–10 vocal WAVs (lead, ad-libs, backing…), pick one of 5 vocal mastering options
-  (Studio, Radio, Warm, Space, Rap – EQ, de-esser, compression, saturation, air + reverb/echo), set a **volume**
+- **Vocals:** drop 1–10 vocal WAVs (lead, ad-libs, backing…), pick one of 10 vocal mastering options
+  (Studio, Radio, Warm, Space, Rap, Pop, Acoustic, R&B / Soul, Speech, Lo-fi – EQ, de-esser, compression, saturation,
+  air + reverb/echo) or **MANUAL** with slider tiles (EQ, compression, de-esser & saturation, space), set a **volume**
   and **reverb/echo** slider per track while listening live (peak meter included), then **MERGE ALL TRACKS INTO ONE**
   → a single 24-bit WAV that sounds exactly like the live preview, clip-protected at −1 dBTP.
 - **Album:** drop finished tracks and **NORMALIZE WHOLE ALBUM** for an even level:
   targets Streaming (−14), Apple Music (−16), CD/store (−10), Loud (−8 LUFS), with a peak ceiling matched to the target
-  (−1 dBTP for streaming/Apple, −2 dBTP for loud masters); methods equal choruses (recommended),
+  (−1 dBTP for streaming/Apple, −2 dBTP for loud masters) or a **custom (MANUAL) LUFS value**; methods equal choruses (recommended),
   equal average loudness, or one album gain. Optional **mix mastering** (Gentle, Warm, Modern, Punchy),
-  an **album chart** (LUFS before/after, LRA) and **loudness-matched A/B listening** of original vs result.
+  an **album chart** (LUFS before/after, LRA) and **loudness-matched A/B listening** of original vs result with
+  live EBU R128 readings (momentary, short-term, integrated) for both versions.
   Export WAV / MP3 / MP4 with cover art and tags, plus a report with LRA and limiter warnings.
 
 Themes (menu → Theme): System, Neon Studio, Hologram, Analog console – switched live, with a themed level meter in A/B.

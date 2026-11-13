@@ -36,11 +36,11 @@ def clean_title(path):
 
 # ------------------------------------------------------------------ album
 def normalize_album(ex, infos, target, mode, out_dir, formats, wav_quality, cover, meta, on_progress=None,
-                    master_key="off"):
+                    master_key="off", manual=None):
     ok = [i for i in infos if not i.error]
-    pl = N.plan(ok, target, mode)
-    ceil = N.ceiling(target)
-    L.log(f"normalizacja: {count(len(ok), 'song', 'pl')}, cel {N.TARGETS[target]:+.1f} LUFS, tryb {mode}, "
+    pl = N.plan(ok, target, mode, manual)
+    ceil = N.ceiling(target, manual)
+    L.log(f"normalizacja: {count(len(ok), 'song', 'pl')}, cel {N.target_value(target, manual):+.1f} LUFS, tryb {mode}, "
           f"pułap {ceil:.1f} dBTP, mastering {master_key}", tag="album")
     results = [None] * len(ok)
     futs = [ex.submit(N._job, n, i.path, *pl[i.path], out_dir, tuple(formats), wav_quality, cover, meta,
@@ -60,10 +60,11 @@ def squashed(results):
     return [n for n, r in enumerate(results, 1) if r["stats"]["limited"] > N.SQUASH_WARN_DB]
 
 
-def report_text(results, tr, target, mode, master_key="off"):
-    ceil = N.ceiling(target)
+def report_text(results, tr, target, mode, master_key="off", manual=None):
+    ceil = N.ceiling(target, manual)
+    tname = tr("target_manual", lufs=N.target_value(target, manual)) if target == "manual" else tr("target_" + target)
     lines = [tr("report_title"), "=" * 104,
-             tr("report_target", target=tr("target_" + target), mode=tr("mode_" + mode), ceil=ceil),
+             tr("report_target", target=tname, mode=tr("mode_" + mode), ceil=ceil),
              tr("report_master", name=tr("mp_" + master_key)), ""]
     lines.append(f"{'#':>2}  {tr('col_track'):30s} {tr('col_before'):>16s} {tr('col_after'):>16s}   "
                  f"{tr('col_chorus'):>13s}  {'LRA':>9s}  {tr('col_limiter'):>8s}")
@@ -84,3 +85,20 @@ def report_text(results, tr, target, mode, master_key="off"):
         lines += ["", tr("report_squash", tracks=", ".join(f"{n:02d}" for n in sq), db=N.SQUASH_WARN_DB)]
     lines += ["", tr("report_units"), tr("report_chorus"), tr("report_lra"), tr("report_limiter")]
     return "\n".join(lines)
+
+
+# ------------------------------------------------------------------ odsłuch A/B: krzywe głośności
+def loudness_curves(path):
+    """Głośność chwilowa (400 ms) i krótkookresowa (3 s) co 100 ms + zintegrowana – liczona raz,
+    a w trakcie odsłuchu tylko odczytywana dla bieżącej pozycji (dokładnie wg EBU R128)."""
+    from . import dsp
+    from .common import load
+    from .export import _decode
+    try:
+        x, fs = load(path)
+    except Exception:  # noqa: BLE001  (MP3 / MP4 – dekodowanie przez ffmpeg)
+        x, fs = _decode(path), 44100
+    mom = dsp._lufs_from_power(dsp._block_powers(x, fs, 0.4, 0.1))
+    st = dsp.short_term(x, fs, 0.1)
+    return dict(momentary=mom.astype("float32"), short=st.astype("float32"),
+                integrated=dsp.integrated_lufs(x, fs), hop=0.1)

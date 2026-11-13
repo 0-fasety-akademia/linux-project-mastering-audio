@@ -1,4 +1,4 @@
-"""Zakładka WOKAL: 1–10 ścieżek, 5 opcji masteringu, suwaki głośności i pogłosu/echa
+"""Zakładka WOKAL: 1–10 ścieżek, 10 opcji masteringu + MANUAL (kafle z suwakami), suwaki głośności i pogłosu/echa
 działające na żywo, przycisk SCAL WSZYSTKIE ŚCIEŻKI W JEDNĄ."""
 import os
 import time
@@ -14,6 +14,7 @@ import soundfile as sf  # noqa: E402
 from ..engine import vocal as V  # noqa: E402
 from ..i18n import count, num, plural, tr  # noqa: E402
 from . import common as C  # noqa: E402
+from .. import i18n  # noqa: E402
 from .. import log as L  # noqa: E402
 from .mixer import LiveMixer  # noqa: E402
 
@@ -26,7 +27,7 @@ class VTrack:
         self.path = path
         self.preset = preset
         self.volume_db = 0.0
-        self.fx = V.PRESETS[preset].fx_default
+        self.fx = V.get_preset(preset).fx_default
         self.mute = False
         self.dry = self.wet = None
         self.duration = 0.0
@@ -45,6 +46,9 @@ class VocalPage(Gtk.Box):
         self.album_preset = "studio"
         self.busy = False
         self.peak_hold = (-90.0, 0.0)
+        self.manual = {**V.MANUAL_DEFAULT, **i18n.load_settings().get("vocal_manual", {})}
+        self._manual_src = 0
+        self.manual_w = {}
         self.mixer = LiveMixer(on_state=self._sync_play, on_level=self._on_level)
 
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vexpand=True)
@@ -65,11 +69,16 @@ class VocalPage(Gtk.Box):
 
     # ================================================================ UI
     def _main(self):
-        page = Adw.PreferencesPage()
+        # szersza strona niż standardowe 600 px Adwaity – kafle MANUAL mieszczą się po 3–4 w rzędzie
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=28)
+        for m in ("top", "bottom", "start", "end"):
+            getattr(col, f"set_margin_{m}")(28 if m in ("start", "end") else 24)
+        page = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+                                  child=Adw.Clamp(maximum_size=1240, tightening_threshold=900, child=col))
 
         g = Adw.PreferencesGroup(title=tr("v_style"), description=tr("v_style_sub"))
         cards = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True,
-                            max_children_per_line=5, min_children_per_line=2, column_spacing=8, row_spacing=8)
+                            max_children_per_line=6, min_children_per_line=2, column_spacing=8, row_spacing=8)
         self.cards = {}
         first = None
         for key in V.PRESET_ORDER:
@@ -92,7 +101,7 @@ class VocalPage(Gtk.Box):
             cards.append(b)
         self.cards["studio"].set_active(True)
         g.add(cards)
-        page.add(g)
+        col.append(g)
 
         tg = Adw.PreferencesGroup(title=tr("v_tracks"))
         hb = Gtk.Box(spacing=4)
@@ -106,9 +115,102 @@ class VocalPage(Gtk.Box):
         self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         self.list.add_css_class("boxed-list")
         tg.add(self.list)
-        page.add(tg)
-
+        col.append(tg)
+        col.append(self._manual_group())
         return page
+
+    # ---------------------------------------------------------------- MANUAL: kafle z suwakami
+    TILES = (("mt_tone", ("lowcut", "body", "mud", "presence", "air")),
+             ("mt_dyn", ("comp_thr", "comp_ratio", "attack", "release")),
+             ("mt_clean", ("deess", "saturation")),
+             ("mt_space", ("reverb_size", "predelay", "echo_ms", "echo_fb")))
+
+    def _manual_group(self):
+        g = Adw.PreferencesGroup(title=tr("v_manual"), description=tr("v_manual_sub"), visible=False)
+        self.manual_group = g
+        reset = Gtk.Button(icon_name="edit-undo-symbolic", tooltip_text=tr("mk_reset"), valign=Gtk.Align.CENTER)
+        reset.add_css_class("flat")
+        reset.connect("clicked", lambda *_: self._manual_reset())
+        g.set_header_suffix(reset)
+        flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, max_children_per_line=4,
+                           min_children_per_line=2, column_spacing=16, row_spacing=16)
+        for title, keys in self.TILES:
+            tile = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            tile.add_css_class("card")
+            tile.add_css_class("manual-tile")
+            h = Gtk.Label(label=tr(title), xalign=0)
+            h.add_css_class("heading")
+            tile.append(h)
+            for k in keys:
+                lo, hi, step = V.MANUAL_RANGES[k]
+                row = Gtk.Box(spacing=8)
+                name = Gtk.Label(label=tr("mk_" + k), xalign=0, hexpand=True)
+                name.add_css_class("caption")
+                val = Gtk.Label(xalign=1)
+                val.add_css_class("caption")
+                val.add_css_class("numeric")
+                row.append(name)
+                row.append(val)
+                sc = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, lo, hi, step)
+                sc.set_draw_value(False)
+                sc.set_value(self.manual[k])
+                sc.connect("value-changed", self._on_manual, k)
+                tile.append(row)
+                tile.append(sc)
+                self.manual_w[k] = (sc, val)
+                self._manual_label(k)
+            flow.append(tile)
+        g.add(flow)
+        return g
+
+    def _manual_label(self, k):
+        v = self.manual[k]
+        if k == "lowcut":
+            t = f"{v:.0f} Hz"
+        elif k in ("body", "mud", "presence", "air"):
+            t = f"{num(v, '+.1f')} dB"
+        elif k == "comp_thr":
+            t = f"{num(v, '.0f')} dB"
+        elif k == "comp_ratio":
+            t = f"{num(v, '.1f')}:1"
+        elif k in ("attack", "release", "predelay"):
+            t = f"{v:.0f} ms"
+        elif k == "echo_ms":
+            t = tr("off") if v < 20 else f"{v:.0f} ms"
+        elif k == "reverb_size":
+            t = tr("off") if v < 0.2 else f"{num(v, '.1f')} s"
+        elif k == "echo_fb":
+            t = f"{v * 100:.0f}%"
+        else:                                   # deess, saturation
+            t = tr("off") if v <= 0 else f"{v:.0f}%"
+        self.manual_w[k][1].set_text(t)
+
+    def _on_manual(self, sc, k):
+        lo, hi, step = V.MANUAL_RANGES[k]
+        self.manual[k] = round(sc.get_value() / step) * step
+        self._manual_label(k)
+        if self._manual_src:
+            GLib.source_remove(self._manual_src)
+        self._manual_src = GLib.timeout_add(700, self._manual_apply)   # render dopiero po puszczeniu suwaka
+
+    def _manual_reset(self):
+        for k, v in V.MANUAL_DEFAULT.items():
+            self.manual_w[k][0].set_value(v)
+
+    def _manual_apply(self):
+        self._manual_src = 0
+        s = i18n.load_settings()
+        s["vocal_manual"] = self.manual
+        i18n.save_settings(s)
+        for t in self.tracks:
+            if t.preset == "manual":
+                self._render(t)
+        return False
+
+    def _manual_visible(self):
+        if not hasattr(self, "manual_group"):          # wołane już przy budowie kart, zanim powstały kafle
+            return
+        self.manual_group.set_visible(self.album_preset == "manual" or any(t.preset == "manual" for t in self.tracks))
 
     def _player_bar(self):
         lg = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
@@ -161,7 +263,8 @@ class VocalPage(Gtk.Box):
         badge.add_css_class("track-badge")
         badge.set_valign(Gtk.Align.CENTER)
         names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, valign=Gtk.Align.CENTER)
-        title = Gtk.Label(label=os.path.basename(t.path), xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
+        title = Gtk.Label(label=os.path.basename(t.path), xalign=0, wrap=True, lines=2,
+                          wrap_mode=Pango.WrapMode.WORD_CHAR, ellipsize=Pango.EllipsizeMode.END)
         title.add_css_class("heading")
         sub = Gtk.Label(xalign=0)
         sub.add_css_class("dim-label")
@@ -269,6 +372,7 @@ class VocalPage(Gtk.Box):
         self._update()
 
     def _rebuild(self):
+        self._manual_visible()
         self.list.remove_all()
         for n, t in enumerate(self.tracks):
             self.list.append(self._track_row(n, t))
@@ -297,7 +401,8 @@ class VocalPage(Gtk.Box):
         t.dry = t.wet = None
         t.error = ""
         self._fill_sub(t)
-        fut = self.ex.submit(V.render_track, t.path, t.preset, self.fs)
+        fut = self.ex.submit(V.render_track, t.path, t.preset, self.fs,
+                             dict(self.manual) if t.preset == "manual" else None)
         fut.add_done_callback(lambda f: GLib.idle_add(self._rendered, t, tok, f))
         self._update()
 
@@ -325,6 +430,7 @@ class VocalPage(Gtk.Box):
         if not btn.get_active():
             return
         self.album_preset = key
+        self._manual_visible()
         for t in self.tracks:
             if t.preset != key:
                 t.w["dd"].set_selected(V.PRESET_ORDER.index(key))   # wywoła _on_track_preset
@@ -335,8 +441,9 @@ class VocalPage(Gtk.Box):
             return
         t.preset = key
         L.log(f"{os.path.basename(t.path)}: opcja -> {key}", tag="ui")
-        t.fx = V.PRESETS[key].fx_default
+        t.fx = V.get_preset(key, self.manual).fx_default
         t.w["fx"].set_value(t.fx)
+        self._manual_visible()
         self._render(t)
 
     def _on_volume(self, s, t):

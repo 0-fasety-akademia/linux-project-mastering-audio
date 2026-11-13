@@ -148,3 +148,10 @@ levelbar.peak-meter > trough {
 .chart-card {
   padding: 4px;
 }
+
+/* 0.4.0: głośność na żywo w A/B */
+.lufs-value { font-size: 1.05em; opacity: 0.75; }
+.lufs-big { font-size: 1.45em; font-weight: 700; opacity: 0.85; }
+.ab-heard { color: @accent_color; opacity: 1; }
+.manual-tile { padding: 14px 16px; }
+.manual-tile scale { margin-bottom: 2px; }

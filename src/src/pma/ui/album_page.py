@@ -14,7 +14,7 @@ from .. import i18n  # noqa: E402
 from ..engine import jobs  # noqa: E402
 from ..engine import master as M  # noqa: E402
 from ..engine import normalize as N  # noqa: E402
-from ..i18n import count, tr  # noqa: E402
+from ..i18n import count, num, tr  # noqa: E402
 from . import common as C  # noqa: E402
 from .ab_meter import ABMeter  # noqa: E402
 from .abplayer import ABPlayer  # noqa: E402
@@ -42,7 +42,9 @@ class AlbumPage(Gtk.Box):
         self.results = None          # wyniki ostatniej normalizacji (lista dict info/stats/files)
         self.results_key = None      # ustawienia, z którymi powstały – wykres pokazuje je tylko gdy się zgadzają
         self.ab_meter = ABMeter()
-        self.ab = ABPlayer(on_state=self._ab_sync, on_level=self.ab_meter.set_level)
+        self.ab = ABPlayer(on_state=self._ab_sync, on_level=self._ab_peak)
+        self._curves = {}          # ścieżka -> krzywe głośności (liczone raz w procesie roboczym)
+        self._ab_cur = None        # (krzywe A, krzywe B, gain A dB, gain B dB) bieżącego utworu
 
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vexpand=True)
         self.stack.add_named(C.empty_page(tr("a_drop_title"), tr("a_drop_sub"), self.choose_files), "empty")
@@ -56,7 +58,7 @@ class AlbumPage(Gtk.Box):
         drop.connect("drop", self._on_drop)
         self.add_controller(drop)
         self._update()
-        GLib.timeout_add(200, self._ab_tick)
+        GLib.timeout_add(100, self._ab_tick)
 
     # ================================================================ UI
     def _main(self):
@@ -118,17 +120,31 @@ class AlbumPage(Gtk.Box):
         right.append(mg)
 
         ng = Adw.PreferencesGroup(title=tr("a_norm"), description=tr("a_norm_sub"))
+        # krótkie nazwy na liście (bez ucinania „…”), pełny opis w podpisie wiersza
         self.target_row = Adw.ComboRow(title=tr("target"),
-                                       model=Gtk.StringList.new([tr("target_" + k) for k in N.TARGET_ORDER]))
+                                       model=Gtk.StringList.new([tr("tshort_" + k) for k in N.TARGET_ORDER]))
         self.target_row.set_selected(N.TARGET_ORDER.index("cd"))
-        self.mode_row = Adw.ComboRow(title=tr("mode"), model=Gtk.StringList.new([tr("mode_" + m) for m in N.MODES]))
+        self.manual_row = Adw.SpinRow.new_with_range(N.MANUAL_RANGE[0], N.MANUAL_RANGE[1], 0.5)
+        self.manual_row.set_title(tr("manual_lufs"))
+        self.manual_row.set_subtitle(tr("manual_hint"))
+        self.manual_row.set_digits(1)
+        self.manual_row.set_value(float(i18n.load_settings().get("manual_lufs", N.MANUAL_DEFAULT)))
+        self.manual_row.add_css_class("manual-row")
+        self.manual_row.connect("notify::value", lambda *_: self._on_manual_lufs())
+        self.mode_row = Adw.ComboRow(title=tr("mode"), model=Gtk.StringList.new([tr("mshort_" + m) for m in N.MODES]))
         for r in (self.target_row, self.mode_row):
             r.connect("notify::selected", lambda *_: self._refresh_rows())
-            ng.add(r)
+        ng.add(self.target_row)
+        ng.add(self.manual_row)
+        ng.add(self.mode_row)
         right.append(ng)
 
         o = Adw.PreferencesGroup(title=tr("output"))
-        self.wavq_row = Adw.ComboRow(title=tr("wav_quality"), model=Gtk.StringList.new([tr("wav_cd"), tr("wav_hires")]))
+        self.wavq_row = Adw.ComboRow(title=tr("wav_quality"),
+                                     model=Gtk.StringList.new([tr("wshort_cd"), tr("wshort_hires")]))
+        self.wavq_row.connect("notify::selected", lambda *_: self.wavq_row.set_subtitle(
+            tr("wdesc_cd" if self.wavq_row.get_selected() == 0 else "wdesc_hires")))
+        self.wavq_row.set_subtitle(tr("wdesc_cd"))
         o.add(self.wavq_row)
         fr = Adw.ActionRow(title=tr("formats"))
         self.fmt = {}
@@ -195,6 +211,30 @@ class AlbumPage(Gtk.Box):
         for m in ("start", "end"):
             getattr(self.ab_meter, f"set_margin_{m}")(12)
         card.append(self.ab_meter)
+        # dokładna głośność na żywo (EBU R128) – obie wersje, tak jak je słychać po wyrównaniu
+        grid = Gtk.Grid(column_spacing=24, row_spacing=4, halign=Gtk.Align.CENTER)
+        for m in ("top", "bottom"):
+            getattr(grid, f"set_margin_{m}")(6)
+        self.ab_vals = {}
+        for c, side in enumerate(("a", "b"), 1):
+            h = Gtk.Label(label=tr("ab_" + side), xalign=1)
+            h.add_css_class("caption-heading")
+            grid.attach(h, c, 0, 1, 1)
+            self.ab_vals[side + "_h"] = h
+        for r, key in enumerate(("m", "s", "i"), 1):
+            lab = Gtk.Label(label=tr("ab_" + key), xalign=0)
+            lab.add_css_class("caption")
+            lab.add_css_class("dim-label")
+            grid.attach(lab, 0, r, 1, 1)
+            for c, side in enumerate(("a", "b"), 1):
+                v = Gtk.Label(label="—", xalign=1, width_chars=11)
+                v.add_css_class("numeric")
+                v.add_css_class("lufs-value")
+                if key == "s":
+                    v.add_css_class("lufs-big")
+                grid.attach(v, c, r, 1, 1)
+                self.ab_vals[side + key] = v
+        card.append(grid)
         self.ab_info = Gtk.Label(xalign=0, wrap=True)
         self.ab_info.add_css_class("caption")
         self.ab_info.add_css_class("dim-label")
@@ -282,6 +322,15 @@ class AlbumPage(Gtk.Box):
     def _target(self):
         return N.TARGET_ORDER[self.target_row.get_selected()]
 
+    def _manual(self):
+        return self.manual_row.get_value()
+
+    def _on_manual_lufs(self):
+        s = i18n.load_settings()
+        s["manual_lufs"] = self._manual()
+        i18n.save_settings(s)
+        self._refresh_rows()
+
     def _mode(self):
         return N.MODES[self.mode_row.get_selected()]
 
@@ -289,11 +338,12 @@ class AlbumPage(Gtk.Box):
         return M.ORDER[self.master_row.get_selected()]
 
     def _key(self):
-        return (self._target(), self._mode(), self._master(), tuple(t.path for t in self.tracks))
+        return (self._target(), self._manual() if self._target() == "manual" else None, self._mode(), self._master(),
+                tuple(t.path for t in self.tracks))
 
     def _refresh_rows(self):
         infos = [t.info for t in self.tracks if t.info and not t.info.error]
-        pl = N.plan(infos, self._target(), self._mode()) if infos and all(t.info for t in self.tracks) else {}
+        pl = N.plan(infos, self._target(), self._mode(), self._manual()) if infos and all(t.info for t in self.tracks) else {}
         for t in self.tracks:
             if not t.row:
                 continue
@@ -309,14 +359,17 @@ class AlbumPage(Gtk.Box):
                     db = val if kind == "gain" else val - (i.loud if kind == "loud" else i.lufs)
                     s += tr("change", db=db)
                 t.row.set_subtitle(s)
-        ceil = N.ceiling(self._target())
-        self.target_row.set_subtitle(tr("ceiling_info_loud" if ceil < N.CEILING_DBTP else "ceiling_info", ceil=ceil))
+        ceil = N.ceiling(self._target(), self._manual())
+        self.target_row.set_subtitle(tr("tdesc_" + self._target()) + " · " +
+                                     tr("ceiling_info_loud" if ceil < N.CEILING_DBTP else "ceiling_info", ceil=ceil))
+        self.manual_row.set_visible(self._target() == "manual")
+        self.mode_row.set_subtitle(tr("mdesc_" + self._mode()))
         self.master_row.set_subtitle(tr(f"mp_{self._master()}_d"))
         self._refresh_chart(pl)
 
     def _refresh_chart(self, pl):
         """Po normalizacji (te same ustawienia) – zmierzone wartości; wcześniej – przewidywane."""
-        target = N.TARGETS[self._target()]
+        target = N.target_value(self._target(), self._manual())
         if self.results and self.results_key == self._key():
             items = [dict(n=n, before=r["info"].lufs, after=r["stats"]["lufs"], lra_before=r["info"].lra,
                           lra_after=r["stats"]["lra"]) for n, r in enumerate(self.results, 1)]
@@ -388,7 +441,7 @@ class AlbumPage(Gtk.Box):
         out_dir = os.path.join(os.path.dirname(infos[0].path), "normalized")
         meta = dict(artist=self.artist_row.get_text().strip(), album=self.album_row.get_text().strip())
         wavq = "cd" if self.wavq_row.get_selected() == 0 else "hires"
-        target, mode, cover, mkey = self._target(), self._mode(), self.cover, self._master()
+        target, mode, cover, mkey, manual = self._target(), self._mode(), self.cover, self._master(), self._manual()
         run_key = self._key()
         self.ab.stop()
         self.busy = True
@@ -405,8 +458,8 @@ class AlbumPage(Gtk.Box):
         def work():
             try:
                 res = jobs.normalize_album(self.ex, infos, target, mode, out_dir, formats, wavq, cover, meta, prog,
-                                           master_key=mkey)
-                text = jobs.report_text(res, tr, target, mode, mkey)
+                                           master_key=mkey, manual=manual)
+                text = jobs.report_text(res, tr, target, mode, mkey, manual)
                 self.results_key = run_key
                 with open(os.path.join(out_dir, "raport.txt" if i18n.LANG == "pl" else "report.txt"), "w") as f:
                     f.write(text + "\n")
@@ -484,7 +537,56 @@ class AlbumPage(Gtk.Box):
             L.log(f"A/B: {e}", "error", tag="ab")
             self.win.toast(str(e))
             return
-        self.ab_info.set_text(tr("ab_matched", lufs=ref))
+        a_lufs, b_lufs = r["info"].lufs, r["stats"]["lufs"]
+        self.ab_info.set_text(tr("ab_files", a=a_lufs, b=b_lufs, d=abs(a_lufs - b_lufs)))
+        self._ab_cur = None
+        for v in self.ab_vals.values():
+            if v.get_label() != tr("ab_a") and v.get_label() != tr("ab_b"):
+                v.set_label("…")
+        paths = (r["info"].path, b)
+        self._ab_gains = (ga, gb)
+        todo = [p for p in paths if p not in self._curves]
+        if not todo:
+            self._ab_set_curves(paths)
+            return
+        self.ab_info.set_text(tr("ab_calc"))
+        for pth in todo:
+            fut = self.ex.submit(jobs.loudness_curves, pth)
+            fut.add_done_callback(lambda f, pth=pth: GLib.idle_add(self._ab_curve_done, pth, paths, f,
+                                                                    a_lufs, b_lufs))
+
+    def _ab_curve_done(self, pth, paths, fut, a_lufs, b_lufs):
+        try:
+            self._curves[pth] = fut.result()
+        except Exception as e:  # noqa: BLE001
+            L.log(f"A/B: pomiar głośności {os.path.basename(pth)}: {e}", "error", tag="ab")
+            return False
+        if all(p in self._curves for p in paths) and self.ab.paths == paths:
+            self.ab_info.set_text(tr("ab_files", a=a_lufs, b=b_lufs, d=abs(a_lufs - b_lufs)))
+            self._ab_set_curves(paths)
+        return False
+
+    def _ab_set_curves(self, paths):
+        self._ab_cur = (self._curves[paths[0]], self._curves[paths[1]], *self._ab_gains)
+        ca, cb, ga, gb = self._ab_cur
+        self.ab_vals["ai"].set_label(self._fmt_lufs(ca["integrated"] + ga))
+        self.ab_vals["bi"].set_label(self._fmt_lufs(cb["integrated"] + gb))
+        self._ab_tick()
+
+    @staticmethod
+    def _fmt_lufs(v):
+        return "−∞" if v < -69 else f"{num(v)} LUFS"
+
+    @staticmethod
+    def _at(curve, pos, window):
+        arr = curve
+        i = int(round((pos - window) / 0.1))
+        i = max(0, min(len(arr) - 1, i))
+        return float(arr[i]) if len(arr) else -70.0
+
+    def _ab_peak(self, db):
+        if self._ab_cur is None:            # dopóki krzywe się liczą, miernik pokazuje szczyty z GStreamera
+            self.ab_meter.set_level(db)
 
     def _ab_sync(self):
         p = self.ab.playing
@@ -501,6 +603,20 @@ class AlbumPage(Gtk.Box):
             self.ab_pos.set_value(p)
             self.ab_pos.handler_unblock(self._ab_pos_h)
             self.ab_time.set_text(f"{C.fmt_dur(p)} / {C.fmt_dur(d)}")
+            if self._ab_cur is not None:
+                ca, cb, ga, gb = self._ab_cur
+                vals = {}
+                for side, c, g in (("a", ca, ga), ("b", cb, gb)):
+                    vals[side] = (self._at(c["momentary"], p, 0.4) + g, self._at(c["short"], p, 3.0) + g)
+                    self.ab_vals[side + "m"].set_label(self._fmt_lufs(vals[side][0]))
+                    self.ab_vals[side + "s"].set_label(self._fmt_lufs(vals[side][1]))
+                heard = self.ab.side
+                for side in ("a", "b"):
+                    for key in ("_h", "m", "s", "i"):
+                        w = self.ab_vals[side + key]
+                        (w.add_css_class if side == heard else w.remove_css_class)("ab-heard")
+                if self.ab.playing:
+                    self.ab_meter.set_level(vals[heard][0])      # miernik = głośność chwilowa słyszanej wersji
         return True
 
     def show_report(self, text):

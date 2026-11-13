@@ -18,7 +18,16 @@ CEILINGS = {"streaming": -1.0, "apple": -1.0, "cd": -2.0, "loud": -2.0}
 SQUASH_WARN_DB = 3.0      # limiter ściął szczyty o więcej – master może brzmieć płasko
 
 
-def ceiling(target_key):
+def target_value(target_key, manual=None):
+    if target_key == "manual":
+        lo, hi = MANUAL_RANGE
+        return max(lo, min(hi, float(manual if manual is not None else MANUAL_DEFAULT)))
+    return TARGETS[target_key]
+
+
+def ceiling(target_key, manual=None):
+    if target_key == "manual":                    # głośniej niż −14 LUFS -> większy zapas na kodowanie
+        return -1.0 if target_value("manual", manual) <= -14.0 else -2.0
     return CEILINGS.get(target_key, CEILING_DBTP)
 
 # docelowa głośność zintegrowana (LUFS)
@@ -28,7 +37,9 @@ TARGETS = {
     "cd": -10.0,          # CD / pliki „jak ze sklepu”
     "loud": -8.0,         # bardzo głośno (klub, rap, EDM)
 }
-TARGET_ORDER = ["streaming", "apple", "cd", "loud"]
+TARGET_ORDER = ["streaming", "apple", "cd", "loud", "manual"]
+MANUAL_RANGE = (-30.0, -5.0)      # własny poziom docelowy (LUFS)
+MANUAL_DEFAULT = -11.0
 MODES = ["loud_parts", "integrated", "album_gain"]
 # loud_parts  – refreny / głośne fragmenty wszystkich utworów na tym samym poziomie (zalecane)
 # integrated  – identyczna średnia głośność (LUFS) każdego utworu
@@ -64,9 +75,9 @@ def analyze(path):
     return i
 
 
-def plan(infos, target_key, mode):
+def plan(infos, target_key, mode, manual=None):
     """Zwraca {ścieżka: (rodzaj_pomiaru, wartość_docelowa)}."""
-    t = TARGETS[target_key]
+    t = target_value(target_key, manual)
     ok = [i for i in infos if not i.error]
     out = {}
     if mode == "album_gain" and ok:
