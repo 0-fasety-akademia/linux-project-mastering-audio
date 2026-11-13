@@ -40,6 +40,12 @@ class App(Adw.Application):
         lang = Gio.SimpleAction.new_stateful("language", GLib.VariantType.new("s"), GLib.Variant("s", i18n.LANG))
         lang.connect("activate", self._on_language)
         self.add_action(lang)
+        from .ui import themes
+        tkey = i18n.load_settings().get("theme", "system")
+        themes.apply(tkey)
+        theme = Gio.SimpleAction.new_stateful("theme", GLib.VariantType.new("s"), GLib.Variant("s", themes.CURRENT))
+        theme.connect("activate", self._on_theme)
+        self.add_action(theme)
         for name, cb in (("about", self._on_about), ("quit", lambda *_: self.really_quit())):
             a = Gio.SimpleAction.new(name, None)
             a.connect("activate", cb)
@@ -141,6 +147,15 @@ class App(Adw.Application):
             iconsync.apply()
         except Exception as e:  # noqa: BLE001
             print("icon sync:", e)
+
+    def _on_theme(self, action, value):
+        from .ui import themes
+        key = value.get_string()
+        action.set_state(value)
+        themes.apply(key)
+        s = i18n.load_settings()
+        s["theme"] = key
+        i18n.save_settings(s)
 
     def _on_language(self, action, value):
         lang = value.get_string()

@@ -16,6 +16,7 @@ from ..engine import master as M  # noqa: E402
 from ..engine import normalize as N  # noqa: E402
 from ..i18n import count, tr  # noqa: E402
 from . import common as C  # noqa: E402
+from .ab_meter import ABMeter  # noqa: E402
 from .abplayer import ABPlayer  # noqa: E402
 from .album_chart import AlbumChart  # noqa: E402
 from .. import log as L  # noqa: E402
@@ -40,7 +41,8 @@ class AlbumPage(Gtk.Box):
         self.busy = False
         self.results = None          # wyniki ostatniej normalizacji (lista dict info/stats/files)
         self.results_key = None      # ustawienia, z którymi powstały – wykres pokazuje je tylko gdy się zgadzają
-        self.ab = ABPlayer(on_state=self._ab_sync)
+        self.ab_meter = ABMeter()
+        self.ab = ABPlayer(on_state=self._ab_sync, on_level=self.ab_meter.set_level)
 
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vexpand=True)
         self.stack.add_named(C.empty_page(tr("a_drop_title"), tr("a_drop_sub"), self.choose_files), "empty")
@@ -166,6 +168,9 @@ class AlbumPage(Gtk.Box):
         for w in (self.ab_play, sw, self.ab_pos, self.ab_time):
             row.append(w)
         card.append(row)
+        for m in ("start", "end"):
+            getattr(self.ab_meter, f"set_margin_{m}")(12)
+        card.append(self.ab_meter)
         self.ab_info = Gtk.Label(xalign=0, wrap=True)
         self.ab_info.add_css_class("caption")
         self.ab_info.add_css_class("dim-label")

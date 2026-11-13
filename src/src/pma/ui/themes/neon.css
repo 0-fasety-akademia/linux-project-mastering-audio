@@ -1,0 +1,53 @@
+/* Neon Studio: ciemne szkło + gradient z ikony aplikacji (cyjan → fiolet → róż) */
+window.background:not(.splash) {
+  background-image: radial-gradient(ellipse at 10% -10%, alpha(#2ee6ff, 0.16), transparent 55%),
+                    radial-gradient(ellipse at 110% 110%, alpha(#ff3ea5, 0.14), transparent 55%);
+}
+headerbar {
+  background: transparent;
+  box-shadow: inset 0 -1px alpha(white, 0.07);
+}
+viewswitcher button.toggle:checked,
+viewswitcher button:checked {
+  background-image: linear-gradient(90deg, alpha(#2ee6ff, 0.22), alpha(#8b5cff, 0.35));
+  box-shadow: inset 0 0 0 1px alpha(#8b5cff, 0.6);
+}
+preferencesgroup > box > box.header label.heading {
+  font-size: 0.8em;
+  letter-spacing: 0.22em;
+  color: #9aa0c8;
+}
+.boxed-list, .card {
+  border-radius: 18px;
+  border: 1px solid alpha(white, 0.08);
+  box-shadow: 0 0 24px alpha(#8b5cff, 0.10);
+}
+.boxed-list > row:first-child { border-top-left-radius: 18px; border-top-right-radius: 18px; }
+.boxed-list > row:last-child { border-bottom-left-radius: 18px; border-bottom-right-radius: 18px; }
+.master-btn {
+  border-radius: 16px;
+  letter-spacing: 0.18em;
+  background-image: linear-gradient(90deg, #2ee6ff, #8b5cff 50%, #ff3ea5);
+  box-shadow: 0 6px 26px alpha(#8b5cff, 0.55);
+}
+button.suggested-action.circular {
+  background-image: linear-gradient(135deg, #2ee6ff, #8b5cff 55%, #ff3ea5);
+  box-shadow: 0 0 18px alpha(#8b5cff, 0.6);
+  color: white;
+}
+.ab-side { border-radius: 999px; }
+.ab-side:checked {
+  background: #e8eaff;
+  color: #0b0d1a;
+}
+.preset-card {
+  border: 1px solid alpha(white, 0.08);
+  background-color: alpha(white, 0.04);
+}
+.preset-card:checked {
+  box-shadow: inset 0 0 0 2px #2ee6ff, 0 0 22px alpha(#2ee6ff, 0.3);
+}
+.track-badge { box-shadow: 0 0 10px alpha(#8b5cff, 0.6); }
+scale > trough > highlight {
+  background-image: linear-gradient(90deg, #2ee6ff, #8b5cff, #ff3ea5);
+}

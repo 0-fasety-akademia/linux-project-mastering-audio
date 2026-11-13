@@ -73,6 +73,15 @@ już słuchałeś, jest natychmiastowy (cache można bezpiecznie usuwać).
 Bez masteringu brzmienie się nie zmienia: tylko wzmocnienie + ochrona szczytów (miękki clipper i limiter true-peak).
 MP3 i MP4 są sprawdzane **po zakodowaniu** i w razie przesteru automatycznie poprawiane.
 
+## Motywy
+
+Menu (☰) → **Motyw** – zmiana od razu, bez restartu, zapamiętywana:
+
+- **Systemowy** – standardowy wygląd Ubuntu/GNOME (jasny lub ciemny jak system),
+- **Neon Studio** – ciemne szkło i gradient cyjan → fiolet → róż z ikony aplikacji, świecące słupki i miernik,
+- **Hologram** – wygląd ekranu z kokpitu: siatka, ostre krawędzie, cyfry o stałej szerokości, segmentowy miernik,
+- **Konsola analogowa** – grafit i bursztyn, przyciski jak na sprzęcie studyjnym, wskazówkowy miernik VU w odsłuchu A/B.
+
 ## Mini-terminal
 
 Przycisk z ikoną terminala w pasku tytułu (prawy górny róg) włącza małe okienko terminala, które na żywo pokazuje,
@@ -126,7 +135,8 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 - **0.3.0** – zakładka Album: **mastering miksu** (Delikatny, Ciepły, Nowoczesny, Mocny), **pułap szczytów zależny od celu**
   (−2 dBTP dla CD i „Głośno”), **wykres płyty** (LUFS przed/po, LRA), **odsłuch A/B z wyrównaną głośnością**,
   w raporcie LRA i ścięcie limitera z ostrzeżeniem powyżej 3 dB; typograficzny minus w liczbach (−2,0 dBTP);
-  poprawiona statystyka kompresora w logu; link do strony projektu w „O programie” i w paczce.
+  poprawiona statystyka kompresora w logu; link do strony projektu w „O programie” i w paczce;
+  **motywy**: Systemowy, Neon Studio, Hologram, Konsola analogowa (menu → Motyw), miernik poziomu w odsłuchu A/B.
 
 - **0.2.5** – licencja: aplikacja jest teraz na licencji Freeware License (No Modifications), zob. `LICENSE` — darmowe użytkowanie i udostępnianie bez zmian, bez prawa do modyfikacji; poza tym bez zmian w aplikacji.
 - **0.2.4** – bez zmian w aplikacji: kod w repozytorium w katalogu `src/`, paczka `.deb` na stronie GitHub Releases (budowana automatycznie dla każdego tagu wersji); README: instalacja z Releases.
@@ -156,6 +166,7 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
   an **album chart** (LUFS before/after, LRA) and **loudness-matched A/B listening** of original vs result.
   Export WAV / MP3 / MP4 with cover art and tags, plus a report with LRA and limiter warnings.
 
+Themes (menu → Theme): System, Neon Studio, Hologram, Analog console – switched live, with a themed level meter in A/B.
 PL/EN UI, a mini terminal (top-right) showing what the engine is doing live, splash with version, dark/light app icon that follows the system theme. Ubuntu 24.04+.
 
 ---

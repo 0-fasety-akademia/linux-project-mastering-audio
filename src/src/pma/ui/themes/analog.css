@@ -1,0 +1,57 @@
+/* Konsola analogowa: grafit, ciepły bursztyn, przyciski jak na sprzęcie studyjnym */
+window.background:not(.splash) {
+  background-image: linear-gradient(180deg, #26231f, #1a1815);
+}
+headerbar {
+  background-image: linear-gradient(180deg, #2f2b26, #24211d);
+  box-shadow: inset 0 -1px #3d3830, 0 1px 0 alpha(black, 0.5);
+}
+preferencesgroup > box > box.header label.heading {
+  letter-spacing: 0.2em;
+  font-size: 0.82em;
+  color: #c9b993;
+}
+.boxed-list, .card {
+  border-radius: 10px;
+  border: 1px solid #3d3830;
+  box-shadow: inset 0 1px alpha(white, 0.04), 0 3px 10px alpha(black, 0.45);
+}
+.boxed-list > row:first-child { border-top-left-radius: 10px; border-top-right-radius: 10px; }
+.boxed-list > row:last-child { border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
+button:not(.flat):not(.suggested-action):not(.master-btn) {
+  background-image: linear-gradient(180deg, #3a362f, #2c2924);
+  box-shadow: inset 0 -2px alpha(black, 0.45), inset 0 1px alpha(white, 0.06);
+}
+.master-btn {
+  border-radius: 8px;
+  background-image: linear-gradient(180deg, #ffc56a, #f0a13a);
+  color: #2a1d05;
+  letter-spacing: 0.14em;
+  box-shadow: inset 0 -3px #b97a1c, 0 0 18px alpha(#ffb547, 0.35);
+}
+button.suggested-action.circular {
+  background-image: linear-gradient(180deg, #ffc56a, #f0a13a);
+  color: #2a1d05;
+  box-shadow: inset 0 -2px #b97a1c;
+}
+.ab-side {
+  letter-spacing: 0.12em;
+}
+.ab-side:checked {
+  background-image: linear-gradient(180deg, #ffc56a, #f0a13a);
+  color: #2a1d05;
+  box-shadow: inset 0 -3px #b97a1c, 0 0 14px alpha(#ffb547, 0.45);
+}
+.preset-card:checked {
+  background-image: none;
+  background-color: alpha(#ffb547, 0.14);
+  box-shadow: inset 0 0 0 2px #ffb547;
+}
+.track-badge { background-image: none; background-color: #ffb547; color: #2a1d05; }
+scale > trough > highlight { background-color: #ffb547; }
+scale > trough > slider {
+  background-image: radial-gradient(circle at 35% 30%, #6b645a, #2a2722 70%);
+  box-shadow: 0 2px 4px alpha(black, 0.6);
+}
+progressbar.master-progress > trough > progress { background-image: none; background-color: #ffb547; }
+levelbar.peak-meter > trough > block.filled { background-image: linear-gradient(to right, #c7a24a, #ffb547 70%, #e05a2b); }

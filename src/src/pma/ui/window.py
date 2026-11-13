@@ -34,6 +34,10 @@ class MainWindow(Adw.ApplicationWindow):
         lang.append("Polski", "app.language::pl")
         lang.append("English", "app.language::en")
         menu.append_submenu(tr("language"), lang)
+        theme = Gio.Menu()
+        for k in ("system", "neon", "holo", "analog"):
+            theme.append(tr("theme_" + k), f"app.theme::{k}")
+        menu.append_submenu(tr("theme"), theme)
         menu.append(tr("about"), "app.about")
         menu.append(tr("quit"), "app.quit")
         hb.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, primary=True))

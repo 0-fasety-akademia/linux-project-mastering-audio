@@ -5,12 +5,12 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("PangoCairo", "1.0")
+import cairo  # noqa: E402
 from gi.repository import Pango, PangoCairo, Gtk  # noqa: E402
 
 from ..i18n import num, tr  # noqa: E402
+from . import themes  # noqa: E402
 
-ACCENT = (0.208, 0.518, 0.894)       # niebieski Adwaita (#3584e4)
-TARGET = (0.902, 0.380, 0.0)         # pomarańczowy (#e66100)
 
 
 def _minus(s):
@@ -25,6 +25,7 @@ class AlbumChart(Gtk.DrawingArea):
         self.target = None
         self.measured = False
         self.set_draw_func(self._draw)
+        themes.on_change(self.queue_draw)
 
     def set_data(self, items, target, measured):
         self.items, self.target, self.measured = items, target, measured
@@ -33,7 +34,8 @@ class AlbumChart(Gtk.DrawingArea):
     # ---------------------------------------------------------------- rysowanie
     def _layout(self, cr, s, size, bold):
         lay = PangoCairo.create_layout(cr)
-        fd = Pango.FontDescription.from_string(f"Sans {'Bold ' if bold else ''}{size * 0.75:.1f}")
+        fam = themes.palette()["font"]
+        fd = Pango.FontDescription.from_string(f"{fam} {'Bold ' if bold else ''}{size * 0.75:.1f}")
         lay.set_font_description(fd)
         lay.set_text(s, -1)
         return lay
@@ -70,9 +72,39 @@ class AlbumChart(Gtk.DrawingArea):
         cr.close_path()
         cr.fill()
 
+    def _before_src(self, cr):
+        b = themes.palette()["before"]
+        if b:
+            cr.set_source_rgba(*b)
+        else:
+            self._fg(cr, 0.28)
+
+    def _after_src(self, cr, y_top, y_bottom):
+        cols = themes.palette()["after"]
+        a = 1.0 if self.measured else 0.55
+        if len(cols) == 1:
+            cr.set_source_rgba(*cols[0], a)
+            return
+        g = cairo.LinearGradient(0, y_bottom, 0, y_top)
+        for i, c in enumerate(cols):
+            g.add_color_stop_rgba(i / (len(cols) - 1), *c, a)
+        cr.set_source(g)
+
+    def _after_bar(self, cr, x, base, top, bw, r):
+        pal = themes.palette()
+        if pal["glow"] and self.measured:
+            c = pal["after"][len(pal["after"]) // 2]
+            for grow, alpha in ((7, 0.07), (4, 0.10), (2, 0.14)):
+                cr.set_source_rgba(*c, alpha)
+                self._bar(cr, x - grow, base, top - grow, bw + 2 * grow, r + grow)
+        self._after_src(cr, top, base)
+        self._bar(cr, x, base, top, bw, r)
+
     def _draw(self, _area, cr, w, h):
         if not self.items:
             return
+        pal = themes.palette()
+        radius = pal["radius"]
         left, right, top, bottom = 46, 14, 30, 40
         pw, ph = w - left - right, h - top - bottom
         vals = [v for it in self.items for v in (it["before"], it["after"])]
@@ -105,10 +137,9 @@ class AlbumChart(Gtk.DrawingArea):
         base = Y(lo)
         for i, it in enumerate(self.items):
             cx = left + gw * (i + 0.5)
-            self._fg(cr, 0.28)
-            self._bar(cr, cx - bw - 1.5, base, Y(it["before"]), bw)
-            cr.set_source_rgba(*ACCENT, 1.0 if self.measured else 0.55)
-            self._bar(cr, cx + 1.5, base, Y(it["after"]), bw)
+            self._before_src(cr)
+            self._bar(cr, cx - bw - 1.5, base, Y(it["before"]), bw, radius)
+            self._after_bar(cr, cx + 1.5, base, Y(it["after"]), bw, radius)
             self._text(cr, cx, h - bottom + 16, f"{it['n']:02d}", 11, "center", 0.8, bold=True)
             if gw >= 64:
                 lra = f"LRA {num(it['lra_before'])}→{num(it['lra_after'])}" if self.measured \
@@ -118,7 +149,7 @@ class AlbumChart(Gtk.DrawingArea):
         # linia celu
         if self.target is not None:
             y = round(Y(self.target)) + 0.5
-            cr.set_source_rgba(*TARGET, 0.9)
+            cr.set_source_rgba(*pal["target"], 0.9)
             cr.set_line_width(1.5)
             cr.set_dash([6, 4])
             cr.move_to(left, y)
@@ -126,16 +157,16 @@ class AlbumChart(Gtk.DrawingArea):
             cr.stroke()
             cr.set_dash([])
             label = f"{tr('chart_target')} {_minus(num(self.target))}"
-            self._text(cr, w - right, y - 5, label, 10, "right", 1.0, bold=True, rgb=TARGET)
+            self._text(cr, w - right, y - 5, label, 10, "right", 1.0, bold=True, rgb=pal["target"])
 
         # legenda
         x = left
         for kind, label in (("before", tr("chart_before")),
                             ("after", tr("chart_after") if self.measured else tr("chart_pred"))):
             if kind == "before":
-                self._fg(cr, 0.28)
+                self._before_src(cr)
             else:
-                cr.set_source_rgba(*ACCENT, 1.0 if self.measured else 0.55)
+                self._after_src(cr, 9, 20)
             cr.rectangle(x, 9, 11, 11)
             cr.fill()
             x += 16 + self._text(cr, x + 16, 19, label, 11, "left", 0.8) + 18

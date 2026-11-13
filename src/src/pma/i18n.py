@@ -261,6 +261,11 @@ S["pl"].update({
     "ab_a": "A · oryginał",
     "ab_b": "B · po",
     "ab_matched": "Obie wersje wyrównane do {lufs:.1f} LUFS",
+    "theme": "Motyw",
+    "theme_system": "Systemowy",
+    "theme_neon": "Neon Studio",
+    "theme_holo": "Hologram",
+    "theme_analog": "Konsola analogowa",
 })
 S["en"].update({
     "a_master": "Mix mastering",
@@ -297,6 +302,11 @@ S["en"].update({
     "ab_a": "A · original",
     "ab_b": "B · after",
     "ab_matched": "Both versions matched to {lufs:.1f} LUFS",
+    "theme": "Theme",
+    "theme_system": "System",
+    "theme_neon": "Neon Studio",
+    "theme_holo": "Hologram",
+    "theme_analog": "Analog console",
 })
 
 

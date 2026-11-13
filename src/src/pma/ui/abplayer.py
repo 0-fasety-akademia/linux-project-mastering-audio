@@ -13,8 +13,8 @@ CAPS = "audio/x-raw,format=F32LE,channels=2,rate=48000"
 
 
 class ABPlayer(LiveMixer):
-    def __init__(self, on_state=None):
-        super().__init__(on_state=on_state)
+    def __init__(self, on_state=None, on_level=None):
+        super().__init__(on_state=on_state, on_level=on_level)
         self.side = "b"
         self.gains = (1.0, 1.0)
         self.paths = None
@@ -31,7 +31,8 @@ class ABPlayer(LiveMixer):
         self.paths = (path_a, path_b)
         self.gains = (undb(gain_a_db), undb(gain_b_db))
         sink = "fakesink sync=true" if os.environ.get("PMA_FAKESINK") else "autoaudiosink"
-        parts = [f"audiomixer name=mix ! audioconvert ! audioresample ! {sink}"]
+        parts = [f"audiomixer name=mix ! audioconvert ! audio/x-raw,format=F32LE ! "
+                 f"level name=lvl interval=40000000 post-messages=true ! audioconvert ! audioresample ! {sink}"]
         for name, p in (("va", path_a), ("vb", path_b)):
             parts.append(f"filesrc location={_q(p)} ! decodebin ! audioconvert ! audioresample ! {CAPS} ! "
                          f"volume name={name} ! mix.")
@@ -40,6 +41,7 @@ class ABPlayer(LiveMixer):
         bus.add_signal_watch()
         bus.connect("message::eos", self._eos)
         bus.connect("message::error", self._err)
+        bus.connect("message::element", self._element)
         self.update_volumes()
         self.pipe.set_state(Gst.State.PAUSED)
         self.pipe.get_state(3 * Gst.SECOND)
