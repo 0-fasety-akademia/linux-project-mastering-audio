@@ -102,3 +102,45 @@ def loudness_curves(path):
     st = dsp.short_term(x, fs, 0.1)
     return dict(momentary=mom.astype("float32"), short=st.astype("float32"),
                 integrated=dsp.integrated_lufs(x, fs), hop=0.1)
+
+
+# ------------------------------------------------------------------ próbka masteringu (zakładka Album)
+PREVIEW_DIR = os.path.join(os.path.expanduser("~/.cache"), "linux-project-mastering-audio", "preview")
+
+
+def preview_excerpt(path, master_key, gain_db, ceil, seconds=20.0):
+    """Najgłośniejsze `seconds` s utworu: oryginał (A) i ten sam fragment po masteringu, z tym samym
+    wzmocnieniem co cały utwór dostałby przy normalizacji, i z limiterem do pułapu (B)."""
+    import hashlib
+    import numpy as np
+    import soundfile as sf
+    from . import dsp, master
+    from .common import load
+    key = hashlib.sha1(f"{path}|{os.path.getmtime(path)}|{master_key}|{gain_db:.2f}|{ceil}|{seconds}|v1"
+                       .encode()).hexdigest()[:16]
+    os.makedirs(PREVIEW_DIR, exist_ok=True)
+    pa, pb = (os.path.join(PREVIEW_DIR, f"{key}_{s}.wav") for s in ("a", "b"))
+    x, fs = load(path)
+    n = int(seconds * fs)
+    start = 0
+    if len(x) > n:
+        st = dsp.short_term(x, fs, 0.5)                    # okna 3 s co 0,5 s
+        k = max(1, int((seconds - 3) / 0.5))
+        p = 10 ** (st / 10)
+        avg = np.convolve(p, np.ones(k) / k, mode="valid") if len(p) >= k else p
+        start = min(int(np.argmax(avg) * 0.5 * fs), len(x) - n)
+    seg = x[start:start + n]
+    if not (os.path.exists(pa) and os.path.exists(pb)):
+        y, _gr = master.process(seg, fs, master_key, os.path.basename(path))
+        y = (y * dsp.undb(gain_db)).astype(np.float32)
+        if dsp.true_peak_db(y) > ceil:
+            y, _ = N._protect(y, fs, ceil)
+        sf.write(pa + ".tmp.wav", seg, fs, subtype="FLOAT")
+        sf.write(pb + ".tmp.wav", y, fs, subtype="FLOAT")
+        os.replace(pa + ".tmp.wav", pa)
+        os.replace(pb + ".tmp.wav", pb)
+    L.log(f"próbka {os.path.basename(path)}: {start / fs:.0f}–{(start + n) / fs:.0f} s, mastering {master_key}, "
+          f"wzmocnienie {gain_db:+.1f} dB", tag="preview")
+    yb, _ = sf.read(pb, dtype="float32", always_2d=True)
+    return dict(a=pa, b=pb, a_lufs=dsp.integrated_lufs(seg, fs), b_lufs=dsp.integrated_lufs(yb, fs),
+                start=start / fs)

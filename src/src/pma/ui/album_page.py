@@ -41,7 +41,9 @@ class AlbumPage(Gtk.Box):
         self.busy = False
         self.results = None          # wyniki ostatniej normalizacji (lista dict info/stats/files)
         self.results_key = None      # ustawienia, z którymi powstały – wykres pokazuje je tylko gdy się zgadzają
-        self.ab_meter = ABMeter()
+        self.ab_meters = {"a": ABMeter(), "b": ABMeter()}      # dwa mierniki obok siebie: A i B
+        self._ab_key = None        # ustawienia, z którymi załadowano odsłuch (wyniki albo próbka)
+        self._ab_stale = False
         self.ab = ABPlayer(on_state=self._ab_sync, on_level=self._ab_peak)
         self._curves = {}          # ścieżka -> krzywe głośności (liczone raz w procesie roboczym)
         self._ab_cur = None        # (krzywe A, krzywe B, gain A dB, gain B dB) bieżącego utworu
@@ -117,6 +119,20 @@ class AlbumPage(Gtk.Box):
         mg.set_header_suffix(ghost)
         self.master_row.connect("notify::selected", lambda *_: self._refresh_rows())
         mg.add(self.master_row)
+        self.pv_track_row = Adw.ComboRow(title=tr("pv_track"), subtitle=tr("pv_sub"))
+        mg.add(self.pv_track_row)
+        pv = Adw.ActionRow(title=tr("pv_play"))
+        self.pv_btn = Gtk.Button(icon_name="media-playback-start-symbolic", valign=Gtk.Align.CENTER,
+                                 tooltip_text=tr("pv_play"))
+        self.pv_btn.add_css_class("circular")
+        self.pv_btn.add_css_class("suggested-action")
+        self.pv_btn.connect("clicked", lambda *_: self.preview())
+        self.pv_spin = Gtk.Spinner(valign=Gtk.Align.CENTER, visible=False)
+        pv.add_suffix(self.pv_spin)
+        pv.add_suffix(self.pv_btn)
+        pv.set_activatable_widget(self.pv_btn)
+        self.pv_row = pv
+        mg.add(pv)
         right.append(mg)
 
         ng = Adw.PreferencesGroup(title=tr("a_norm"), description=tr("a_norm_sub"))
@@ -208,9 +224,19 @@ class AlbumPage(Gtk.Box):
         for w in (self.ab_play, sw, self.ab_pos, self.ab_time):
             row.append(w)
         card.append(row)
+        meters = Gtk.Box(spacing=24, homogeneous=True)
         for m in ("start", "end"):
-            getattr(self.ab_meter, f"set_margin_{m}")(12)
-        card.append(self.ab_meter)
+            getattr(meters, f"set_margin_{m}")(12)
+        self.ab_meter_boxes = {}
+        for side in ("a", "b"):
+            col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            col.append(self.ab_meters[side])
+            lab = Gtk.Label(label=tr("ab_" + side))
+            lab.add_css_class("caption-heading")
+            col.append(lab)
+            self.ab_meter_boxes[side] = col
+            meters.append(col)
+        card.append(meters)
         # dokładna głośność na żywo (EBU R128) – obie wersje, tak jak je słychać po wyrównaniu
         grid = Gtk.Grid(column_spacing=24, row_spacing=4, halign=Gtk.Align.CENTER)
         for m in ("top", "bottom"):
@@ -241,7 +267,11 @@ class AlbumPage(Gtk.Box):
         for m in ("bottom", "start", "end"):
             getattr(self.ab_info, f"set_margin_{m}")(12)
         card.append(self.ab_info)
+        self.ab_card = card
         g.add(card)
+        self.ab_stale_lbl = Gtk.Label(label=tr("ab_stale"), wrap=True, xalign=0, visible=False)
+        self.ab_stale_lbl.add_css_class("ab-stale")
+        g.add(self.ab_stale_lbl)
         return g
 
     # ================================================================ pliki
@@ -363,6 +393,7 @@ class AlbumPage(Gtk.Box):
         self.target_row.set_subtitle(tr("tdesc_" + self._target()) + " · " +
                                      tr("ceiling_info_loud" if ceil < N.CEILING_DBTP else "ceiling_info", ceil=ceil))
         self.manual_row.set_visible(self._target() == "manual")
+        self._ab_check_stale()
         self.mode_row.set_subtitle(tr("mdesc_" + self._mode()))
         self.master_row.set_subtitle(tr(f"mp_{self._master()}_d"))
         self._refresh_chart(pl)
@@ -429,6 +460,8 @@ class AlbumPage(Gtk.Box):
                 tot = sum(i.duration for i in infos)
                 self.status.set_text(tr("count_dur", count=count(len(infos), "song"), dur=C.fmt_dur(tot))
                                      if infos else "")
+        self._pv_refresh()
+        self.pv_btn.set_sensitive(self.pv_btn.get_sensitive() and not analyzing)
 
     def start(self):
         formats = [k for k, c in self.fmt.items() if c.get_active()]
@@ -514,6 +547,9 @@ class AlbumPage(Gtk.Box):
     def _ab_fill(self):
         res = [r for r in (self.results or []) if r["files"]]
         self.ab_group.set_visible(bool(res))
+        self.ab_group.set_description(tr("ab_sub"))
+        self.ab_track_row.set_visible(True)
+        self._ab_key = self.results_key
         self._ab_res = res
         names = [f"{n:02d} · {os.path.basename(r['info'].path)}" for n, r in enumerate(self.results or [], 1)
                  if r["files"]]
@@ -530,20 +566,26 @@ class AlbumPage(Gtk.Box):
         r = res[i]
         f = r["files"]
         b = (f.get("wav") or f.get("mp4") or f.get("mp3"))["path"]
-        ga, gb, ref = ABPlayer.matched_gains(r["info"].lufs, r["stats"]["lufs"])
+        self._ab_open(r["info"].path, b, r["info"].lufs, r["stats"]["lufs"])
+
+    def _ab_open(self, a, b, a_lufs, b_lufs):
+        """Ładuje parę A/B (cały utwór po normalizacji albo 20-sekundową próbkę) z wyrównaną głośnością."""
+        ga, gb, ref = ABPlayer.matched_gains(a_lufs, b_lufs)
         try:
-            self.ab.load(r["info"].path, b, ga, gb)
+            self.ab.load(a, b, ga, gb)
         except Exception as e:  # noqa: BLE001
             L.log(f"A/B: {e}", "error", tag="ab")
             self.win.toast(str(e))
             return
-        a_lufs, b_lufs = r["info"].lufs, r["stats"]["lufs"]
+        self._ab_set_stale(False)
+        for m in self.ab_meters.values():
+            m.reset()
         self.ab_info.set_text(tr("ab_files", a=a_lufs, b=b_lufs, d=abs(a_lufs - b_lufs)))
         self._ab_cur = None
         for v in self.ab_vals.values():
             if v.get_label() != tr("ab_a") and v.get_label() != tr("ab_b"):
                 v.set_label("…")
-        paths = (r["info"].path, b)
+        paths = (a, b)
         self._ab_gains = (ga, gb)
         todo = [p for p in paths if p not in self._curves]
         if not todo:
@@ -585,8 +627,8 @@ class AlbumPage(Gtk.Box):
         return float(arr[i]) if len(arr) else -70.0
 
     def _ab_peak(self, db):
-        if self._ab_cur is None:            # dopóki krzywe się liczą, miernik pokazuje szczyty z GStreamera
-            self.ab_meter.set_level(db)
+        if self._ab_cur is None:            # dopóki krzywe się liczą, miernik słyszanej wersji pokazuje szczyty
+            self.ab_meters[self.ab.side].set_level(db)
 
     def _ab_sync(self):
         p = self.ab.playing
@@ -615,9 +657,84 @@ class AlbumPage(Gtk.Box):
                     for key in ("_h", "m", "s", "i"):
                         w = self.ab_vals[side + key]
                         (w.add_css_class if side == heard else w.remove_css_class)("ab-heard")
-                if self.ab.playing:
-                    self.ab_meter.set_level(vals[heard][0])      # miernik = głośność chwilowa słyszanej wersji
+                for side in ("a", "b"):
+                    if self.ab.playing:                           # każdy miernik = głośność chwilowa swojej wersji
+                        self.ab_meters[side].set_level(vals[side][0])
+                    (self.ab_meter_boxes[side].remove_css_class if side == heard
+                     else self.ab_meter_boxes[side].add_css_class)("ab-quiet")
         return True
+
+    # ================================================================ próbka i aktualność odsłuchu
+    def _ab_set_stale(self, stale):
+        self._ab_stale = stale
+        self.ab_card.set_visible(not stale)
+        self.ab_track_row.set_visible(not stale and self._ab_key == self.results_key)
+        self.ab_stale_lbl.set_visible(stale)
+
+    def _ab_check_stale(self):
+        """Zmiana masteringu, poziomu, sposobu albo listy utworów -> stary odsłuch nie pasuje: stop i podpowiedź.
+        Powrót do ustawień ostatniej normalizacji -> jej odsłuch wraca."""
+        if not hasattr(self, "ab_card") or not self.ab_group.get_visible():
+            return
+        cur = self._key()
+        if not self._ab_stale and self._ab_key is not None and self._ab_key != cur:
+            self.ab.stop()
+            self._ab_sync()
+            self._ab_set_stale(True)
+        elif self._ab_stale and self.results and self.results_key == cur:
+            self._ab_fill()
+
+    def _pv_tracks(self):
+        return [t for t in self.tracks if t.info and not t.info.error]
+
+    def _pv_refresh(self):
+        names = [f"{n:02d} · {os.path.basename(t.path)}" for n, t in enumerate(self._pv_tracks(), 1)]
+        sel = self.pv_track_row.get_selected()
+        self.pv_track_row.set_model(Gtk.StringList.new(names))
+        if names:
+            self.pv_track_row.set_selected(min(sel, len(names) - 1) if sel != Gtk.INVALID_LIST_POSITION else 0)
+        self.pv_btn.set_sensitive(bool(names) and not self.busy)
+
+    def preview(self):
+        tracks = self._pv_tracks()
+        i = self.pv_track_row.get_selected()
+        if not tracks or i >= len(tracks) or self.busy:
+            return
+        t = tracks[i]
+        infos = self._infos()
+        pl = N.plan(infos, self._target(), self._mode(), self._manual())
+        kind, val = pl[t.path]
+        gain = val if kind == "gain" else val - (t.info.loud if kind == "loud" else t.info.lufs)
+        ceil = N.ceiling(self._target(), self._manual())
+        mkey, key = self._master(), self._key()
+        self.ab.stop()
+        self.pv_btn.set_sensitive(False)
+        self.pv_spin.set_visible(True)
+        self.pv_spin.set_spinning(True)
+        self.pv_row.set_subtitle(tr("pv_busy"))
+        fut = self.ex.submit(jobs.preview_excerpt, t.path, mkey, gain, ceil)
+        fut.add_done_callback(lambda f: GLib.idle_add(self._preview_done, t, mkey, key, f))
+
+    def _preview_done(self, t, mkey, key, fut):
+        self.pv_spin.set_spinning(False)
+        self.pv_spin.set_visible(False)
+        self.pv_btn.set_sensitive(True)
+        self.pv_row.set_subtitle("")
+        try:
+            r = fut.result()
+        except Exception as e:  # noqa: BLE001
+            L.log(f"próbka: {e}", "error", tag="preview")
+            self.win.toast(str(e))
+            return False
+        target = self.target_row.get_model().get_string(self.target_row.get_selected())
+        self.ab_group.set_visible(True)
+        self.ab_group.set_description(tr("pv_desc", name=os.path.basename(t.path), preset=tr("mp_" + mkey),
+                                         target=target))
+        self._ab_key = key
+        self._ab_open(r["a"], r["b"], r["a_lufs"], r["b_lufs"])
+        self.ab_track_row.set_visible(False)
+        self.ab.play()
+        return False
 
     def show_report(self, text):
         w = Adw.Window(transient_for=self.win, modal=True, title=tr("show_report"), default_width=860,

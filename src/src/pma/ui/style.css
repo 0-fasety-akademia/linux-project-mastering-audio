@@ -155,3 +155,5 @@ levelbar.peak-meter > trough {
 .ab-heard { color: @accent_color; opacity: 1; }
 .manual-tile { padding: 14px 16px; }
 .manual-tile scale { margin-bottom: 2px; }
+.ab-quiet { opacity: 0.45; }
+.ab-stale { padding: 18px 16px; border-radius: 12px; background-color: alpha(@accent_bg_color, 0.12); }

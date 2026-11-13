@@ -5,7 +5,7 @@ Prosta aplikacja na Ubuntu z dwiema zakładkami:
 1. **Wokal** – mastering ścieżek wokalu (wokal główny, dopowiedzi, chórki…), odsłuch na żywo, suwaki
    głośności i pogłosu/echa dla każdej ścieżki i przycisk **SCAL WSZYSTKIE ŚCIEŻKI W JEDNĄ** → jeden końcowy WAV.
 2. **Album** – gotowe, zmiksowane utwory: **normalizacja głośności całej płyty** (bez zmiany brzmienia)
-   i przycisk **NORMALIZUJ CAŁY ALBUM**.
+   i przycisk **NORMALIZUJ**.
 
 To nie jest drugi Audacity – tylko to, co potrzebne.
 
@@ -58,7 +58,8 @@ już słuchałeś, jest natychmiastowy (cache można bezpiecznie usuwać).
    i **przewidywaną zmianę** dla wybranych ustawień.
 2. **Płyta w liczbach** – wykres: głośność każdego utworu przed i po (LUFS), linia celu i zakres dynamiki (LRA).
    Przed normalizacją słupki „po” są przewidywane, po normalizacji – zmierzone.
-3. **Mastering miksu** (opcjonalnie, przed normalizacją): **Bez masteringu**, **Delikatny**, **Ciepły**,
+3. **Mastering miksu** (opcjonalnie, przed normalizacją; **Odsłuchaj próbkę** gra 20 s najgłośniejszego fragmentu
+   wybranego utworu z tym masteringiem i poziomem w odsłuchu A/B, zanim znormalizujesz całą płytę): **Bez masteringu**, **Delikatny**, **Ciepły**,
    **Nowoczesny**, **Mocny** – filtr subsoniczny, korekcja barwy, kompresja „sklejająca”, delikatne nasycenie.
    Głośność utworu po masteringu zostaje taka sama, więc wyrównanie płyty działa jak wcześniej.
 4. **Poziom docelowy** (z pułapem szczytów dobranym do celu):
@@ -77,7 +78,7 @@ już słuchałeś, jest natychmiastowy (cache można bezpiecznie usuwać).
    - **Jedno wzmocnienie dla płyty** – najgłośniejszy utwór trafia w cel, reszta dostaje to samo wzmocnienie (zachowuje różnice z miksu).
 6. **Zapis:** WAV (CD 16 bit/44,1 kHz z ditherem albo Hi-Res 24 bit), MP3 320 kbps, MP4 (AAC 256 kbps, koder FDK) –
    z okładką PNG i tagami (tytuł z nazwy pliku, wykonawca, album, numer).
-7. **NORMALIZUJ CAŁY ALBUM** → folder **`normalized/`** obok oryginałów + `raport.txt` (przed/po, refren, LRA
+7. **NORMALIZUJ** → folder **`normalized/`** obok oryginałów + `raport.txt` (przed/po, refren, LRA
    i to, o ile dB limiter ściął szczyty). Jeśli w którymś utworze ściął więcej niż 3 dB, aplikacja ostrzega – master może brzmieć płasko.
 8. **Odsłuch A/B** (po normalizacji): wybierasz utwór i przełączasz **A · oryginał** / **B · po** w trakcie odtwarzania.
    Obie wersje grają z **tą samą głośnością** (głośniejsza jest ściszana), więc słychać tylko różnicę brzmienia –
@@ -147,6 +148,11 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 ## Historia wersji
 
+- **0.5.0** – Album: **próbka masteringu** – 20 s najgłośniejszego fragmentu wybranego utworu z wybranym masteringiem
+  i poziomem, od razu w odsłuchu A/B (bez normalizowania całej płyty); **dwa mierniki obok siebie** (A i B, w stylu
+  motywu, słyszana wersja podświetlona); zmiana masteringu, poziomu, sposobu albo listy utworów **zatrzymuje
+  nieaktualny odsłuch** z podpowiedzią (powrót do ustawień ostatniej normalizacji go przywraca); przycisk **NORMALIZUJ**.
+
 - **0.4.0** – zakładka Wokal: 5 nowych opcji (Pop, Akustyczny, R&B / Soul, Mowa, Lo-fi) i **MANUAL** z kaflami suwaków
   (EQ, kompresja, de-esser i nasycenie, przestrzeń), szersza strona; Album: **własny poziom docelowy (MANUAL)**
   z podpowiedzią, **dokładny pomiar LUFS na żywo w A/B** (chwilowa / krótkookresowa / zintegrowana), krótkie nazwy
@@ -182,12 +188,13 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
   air + reverb/echo) or **MANUAL** with slider tiles (EQ, compression, de-esser & saturation, space), set a **volume**
   and **reverb/echo** slider per track while listening live (peak meter included), then **MERGE ALL TRACKS INTO ONE**
   → a single 24-bit WAV that sounds exactly like the live preview, clip-protected at −1 dBTP.
-- **Album:** drop finished tracks and **NORMALIZE WHOLE ALBUM** for an even level:
+- **Album:** drop finished tracks and **NORMALIZE** for an even level:
   targets Streaming (−14), Apple Music (−16), CD/store (−10), Loud (−8 LUFS), with a peak ceiling matched to the target
   (−1 dBTP for streaming/Apple, −2 dBTP for loud masters) or a **custom (MANUAL) LUFS value**; methods equal choruses (recommended),
   equal average loudness, or one album gain. Optional **mix mastering** (Gentle, Warm, Modern, Punchy),
   an **album chart** (LUFS before/after, LRA) and **loudness-matched A/B listening** of original vs result with
-  live EBU R128 readings (momentary, short-term, integrated) for both versions.
+  live EBU R128 readings (momentary, short-term, integrated) and two side-by-side meters, plus a 20-second
+  mastering preview of the loudest part of any track before you normalize the whole album.
   Export WAV / MP3 / MP4 with cover art and tags, plus a report with LRA and limiter warnings.
 
 Themes (menu → Theme): System, Neon Studio, Hologram, Analog console – switched live, with a themed level meter in A/B.
