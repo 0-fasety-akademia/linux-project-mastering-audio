@@ -32,6 +32,7 @@ Priority: optional
 Architecture: all
 Installed-Size: $SIZE
 Maintainer: Jaro <jaroslawguza83@gmail.com>
+Homepage: https://github.com/jgu-linux-apps/linux-project-mastering-audio
 Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1 (>= 1.5),
  python3-numpy, python3-scipy, python3-soundfile,
  gir1.2-gstreamer-1.0, gir1.2-gst-plugins-base-1.0, gstreamer1.0-plugins-good,
@@ -40,7 +41,8 @@ Description: Linux Project Mastering Audio – vocal mastering and album loudnes
  Vocals tab: master 1-10 vocal tracks with 5 styles (reverb/echo included),
  set volume and effect per track while listening live, merge into one WAV.
  Album tab: normalize the loudness of finished tracks to an even level
- (WAV / MP3 / MP4 with cover art). PL / EN.
+ (WAV / MP3 / MP4 with cover art), optional mix mastering,
+ album chart and loudness-matched A/B listening. PL / EN.
 EOF
 
 cat > "$ROOT/DEBIAN/postinst" <<'EOF'

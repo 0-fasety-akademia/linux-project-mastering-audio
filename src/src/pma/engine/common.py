@@ -26,11 +26,11 @@ def loud_level(x, fs):
     return float(np.percentile(st, 95))
 
 
-def safety_limit(x, fs):
+def safety_limit(x, fs, ceiling=CEILING_DBTP):
     """Ostateczne zabezpieczenie po zmianie częstotliwości (zwykle nic nie robi)."""
-    if dsp.true_peak_db(x) <= CEILING_DBTP:
+    if dsp.true_peak_db(x) <= ceiling:
         return x
-    y, _ = dsp.limiter(x, fs, CEILING_DBTP - 0.05)
+    y, _ = dsp.limiter(x, fs, ceiling - 0.05)
     return y
 
 

@@ -154,7 +154,8 @@ class App(Adw.Application):
     def _on_about(self, *_):
         d = Adw.AboutDialog(application_name=APP_NAME, application_icon=APP_ID, version=VERSION,
                             developer_name=tr("made_by") + "\n" + tr("supported_by"),
-                            comments=tr("about_comments"))
+                            comments=tr("about_comments"),
+                            website="https://github.com/jgu-linux-apps/linux-project-mastering-audio")
         d.set_developers(["JGu"])
         d.add_credit_section(tr("supported_by").replace(" Claude", ""), ["Claude (Anthropic)"])
         d.present(self.win)

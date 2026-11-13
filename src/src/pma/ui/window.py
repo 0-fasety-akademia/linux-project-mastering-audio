@@ -74,3 +74,4 @@ class MainWindow(Adw.ApplicationWindow):
 
     def shutdown(self):
         self.vocal.mixer.stop()
+        self.album.ab.stop()

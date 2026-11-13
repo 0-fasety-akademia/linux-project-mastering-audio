@@ -1,6 +1,6 @@
 """Zapis: WAV (CD 16-bit/44.1 kHz z ditherem lub 24-bit), MP3 320 kbps, MP4 (AAC 256 kbps)
 z okładką i tagami. Pliki stratne są sprawdzane PO zakodowaniu – jeśli kodek dodał
-przester (true peak > -1 dBTP), poziom jest korygowany i plik kodowany ponownie."""
+przester (true peak ponad pułap, zwykle −1 dBTP), poziom jest korygowany i plik kodowany ponownie."""
 import os
 import shutil
 import subprocess
@@ -24,9 +24,9 @@ def tpdf_16(x, seed=0):
     return np.clip(np.round((x + d) * 32767.0), -32768, 32767).astype(np.int16)
 
 
-def write_wav(path, x, fs, quality, tags):
+def write_wav(path, x, fs, quality, tags, ceiling=CEILING_DBTP):
     if quality == "cd":
-        y = safety_limit(to_rate(x, fs, 44100), 44100)
+        y = safety_limit(to_rate(x, fs, 44100), 44100, ceiling)
         data, rate, sub = tpdf_16(y), 44100, "PCM_16"
     else:
         data, rate, sub = x, fs, "PCM_24"
@@ -76,9 +76,9 @@ def _encode(fmt, wav_path, out_path, cover, tags):
     subprocess.run(cmd, check=True, capture_output=True)
 
 
-def write_lossy(fmt, path, x, fs, cover, tags, tmpdir):
+def write_lossy(fmt, path, x, fs, cover, tags, tmpdir, ceiling=CEILING_DBTP):
     """Koduje, dekoduje, mierzy true peak; w razie przesteru ścisza i koduje ponownie."""
-    y = safety_limit(to_rate(x, fs, 44100), 44100)
+    y = safety_limit(to_rate(x, fs, 44100), 44100, ceiling)
     trim = 0.0
     tp = None
     for _ in range(4):
@@ -87,22 +87,22 @@ def write_lossy(fmt, path, x, fs, cover, tags, tmpdir):
         sf.write(wav, z, 44100, subtype="FLOAT")
         _encode(fmt, wav, path, cover, tags)
         tp = dsp.true_peak_db(_decode(path))
-        if tp <= CEILING_DBTP:
+        if tp <= ceiling:
             break
         L.log(f"{os.path.basename(path)}: po kodowaniu {tp:+.2f} dBTP – ściszam i koduję ponownie", "warn",
               tag=fmt)
-        trim -= (tp - CEILING_DBTP) + 0.1
+        trim -= (tp - ceiling) + 0.1
     return dict(path=path, true_peak=tp, trim=trim)
 
 
-def export_track(x, fs, out_dir, stem, formats, wav_quality, cover, tags):
+def export_track(x, fs, out_dir, stem, formats, wav_quality, cover, tags, ceiling=CEILING_DBTP):
     os.makedirs(out_dir, exist_ok=True)
     results = {}
     with tempfile.TemporaryDirectory(prefix="pma-") as tmp:
         if "wav" in formats:
-            results["wav"] = write_wav(os.path.join(out_dir, stem + ".wav"), x, fs, wav_quality, tags)
+            results["wav"] = write_wav(os.path.join(out_dir, stem + ".wav"), x, fs, wav_quality, tags, ceiling)
         if "mp3" in formats:
-            results["mp3"] = write_lossy("mp3", os.path.join(out_dir, stem + ".mp3"), x, fs, cover, tags, tmp)
+            results["mp3"] = write_lossy("mp3", os.path.join(out_dir, stem + ".mp3"), x, fs, cover, tags, tmp, ceiling)
         if "mp4" in formats:
-            results["mp4"] = write_lossy("mp4", os.path.join(out_dir, stem + ".mp4"), x, fs, cover, tags, tmp)
+            results["mp4"] = write_lossy("mp4", os.path.join(out_dir, stem + ".mp4"), x, fs, cover, tags, tmp, ceiling)
     return results

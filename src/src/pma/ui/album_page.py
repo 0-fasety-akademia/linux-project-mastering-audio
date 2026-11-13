@@ -1,4 +1,5 @@
-"""Zakładka ALBUM: normalizacja głośności gotowych utworów (bez zmiany brzmienia)."""
+"""Zakładka ALBUM: opcjonalny lekki mastering i normalizacja głośności gotowych utworów,
+wykres płyty i odsłuch A/B z wyrównaną głośnością."""
 import os
 import threading
 import traceback
@@ -11,9 +12,12 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from .. import i18n  # noqa: E402
 from ..engine import jobs  # noqa: E402
+from ..engine import master as M  # noqa: E402
 from ..engine import normalize as N  # noqa: E402
 from ..i18n import count, tr  # noqa: E402
 from . import common as C  # noqa: E402
+from .abplayer import ABPlayer  # noqa: E402
+from .album_chart import AlbumChart  # noqa: E402
 from .. import log as L  # noqa: E402
 
 
@@ -34,6 +38,9 @@ class AlbumPage(Gtk.Box):
         self.tracks = []
         self.cover = None
         self.busy = False
+        self.results = None          # wyniki ostatniej normalizacji (lista dict info/stats/files)
+        self.results_key = None      # ustawienia, z którymi powstały – wykres pokazuje je tylko gdy się zgadzają
+        self.ab = ABPlayer(on_state=self._ab_sync)
 
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vexpand=True)
         self.stack.add_named(C.empty_page(tr("a_drop_title"), tr("a_drop_sub"), self.choose_files), "empty")
@@ -47,6 +54,7 @@ class AlbumPage(Gtk.Box):
         drop.connect("drop", self._on_drop)
         self.add_controller(drop)
         self._update()
+        GLib.timeout_add(200, self._ab_tick)
 
     # ================================================================ UI
     def _main(self):
@@ -64,6 +72,24 @@ class AlbumPage(Gtk.Box):
         self.list.add_css_class("boxed-list")
         tg.add(self.list)
         page.add(tg)
+
+        self.chart_group = Adw.PreferencesGroup(title=tr("chart_title"), description=tr("chart_sub"), visible=False)
+        self.chart = AlbumChart()
+        card = Gtk.Box()
+        card.add_css_class("card")
+        card.add_css_class("chart-card")
+        for m in ("top", "bottom", "start", "end"):
+            getattr(self.chart, f"set_margin_{m}")(12)
+        card.append(self.chart)
+        self.chart_group.add(card)
+        page.add(self.chart_group)
+
+        mg = Adw.PreferencesGroup(title=tr("a_master"), description=tr("a_master_sub"))
+        self.master_row = Adw.ComboRow(title=tr("master_style"),
+                                       model=Gtk.StringList.new([tr("mp_" + k) for k in M.ORDER]))
+        self.master_row.connect("notify::selected", lambda *_: self._refresh_rows())
+        mg.add(self.master_row)
+        page.add(mg)
 
         ng = Adw.PreferencesGroup(title=tr("a_norm"), description=tr("a_norm_sub"))
         self.target_row = Adw.ComboRow(title=tr("target"),
@@ -102,7 +128,52 @@ class AlbumPage(Gtk.Box):
         self.cover_row.connect("activated", lambda *_: self.choose_cover())
         o.add(self.cover_row)
         page.add(o)
+        page.add(self._ab_group())
         return page
+
+    def _ab_group(self):
+        g = Adw.PreferencesGroup(title=tr("ab_title"), description=tr("ab_sub"), visible=False)
+        self.ab_group = g
+        self.ab_track_row = Adw.ComboRow(title=tr("ab_track"))
+        self.ab_track_row.connect("notify::selected", lambda *_: self._ab_load())
+        g.add(self.ab_track_row)
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card.add_css_class("card")
+        for m in ("top", "bottom", "start", "end"):
+            getattr(card, f"set_margin_{m}")(0)
+        row = Gtk.Box(spacing=12)
+        for m in ("top", "start", "end"):
+            getattr(row, f"set_margin_{m}")(12)
+        self.ab_play = Gtk.Button(icon_name="media-playback-start-symbolic", tooltip_text=tr("play"),
+                                  valign=Gtk.Align.CENTER)
+        self.ab_play.add_css_class("circular")
+        self.ab_play.add_css_class("suggested-action")
+        self.ab_play.connect("clicked", lambda *_: self.ab.toggle())
+        sw = Gtk.Box(valign=Gtk.Align.CENTER)
+        sw.add_css_class("linked")
+        self.ab_a = Gtk.ToggleButton(label=tr("ab_a"))
+        self.ab_b = Gtk.ToggleButton(label=tr("ab_b"), active=True, group=self.ab_a)
+        for b, side in ((self.ab_a, "a"), (self.ab_b, "b")):
+            b.add_css_class("ab-side")
+            b.connect("toggled", lambda btn, side=side: btn.get_active() and self.ab.set_side(side))
+            sw.append(b)
+        self.ab_pos = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, 0.1)
+        self.ab_pos.set_hexpand(True)
+        self.ab_pos.set_draw_value(False)
+        self._ab_pos_h = self.ab_pos.connect("change-value", lambda _s, _c, v: (self.ab.seek(v), False)[1])
+        self.ab_time = Gtk.Label(label="0:00 / 0:00")
+        self.ab_time.add_css_class("numeric")
+        for w in (self.ab_play, sw, self.ab_pos, self.ab_time):
+            row.append(w)
+        card.append(row)
+        self.ab_info = Gtk.Label(xalign=0, wrap=True)
+        self.ab_info.add_css_class("caption")
+        self.ab_info.add_css_class("dim-label")
+        for m in ("bottom", "start", "end"):
+            getattr(self.ab_info, f"set_margin_{m}")(12)
+        card.append(self.ab_info)
+        g.add(card)
+        return g
 
     # ================================================================ pliki
     def _on_drop(self, _t, value, *_):
@@ -141,6 +212,9 @@ class AlbumPage(Gtk.Box):
     def clear(self):
         if not self.busy:
             self.tracks = []
+            self.results = None
+            self.ab.stop()
+            self.ab_group.set_visible(False)
             self._rebuild()
             self._update()
 
@@ -182,6 +256,12 @@ class AlbumPage(Gtk.Box):
     def _mode(self):
         return N.MODES[self.mode_row.get_selected()]
 
+    def _master(self):
+        return M.ORDER[self.master_row.get_selected()]
+
+    def _key(self):
+        return (self._target(), self._mode(), self._master(), tuple(t.path for t in self.tracks))
+
     def _refresh_rows(self):
         infos = [t.info for t in self.tracks if t.info and not t.info.error]
         pl = N.plan(infos, self._target(), self._mode()) if infos and all(t.info for t in self.tracks) else {}
@@ -200,6 +280,29 @@ class AlbumPage(Gtk.Box):
                     db = val if kind == "gain" else val - (i.loud if kind == "loud" else i.lufs)
                     s += tr("change", db=db)
                 t.row.set_subtitle(s)
+        ceil = N.ceiling(self._target())
+        self.target_row.set_subtitle(tr("ceiling_info_loud" if ceil < N.CEILING_DBTP else "ceiling_info", ceil=ceil))
+        self.master_row.set_subtitle(tr(f"mp_{self._master()}_d"))
+        self._refresh_chart(pl)
+
+    def _refresh_chart(self, pl):
+        """Po normalizacji (te same ustawienia) – zmierzone wartości; wcześniej – przewidywane."""
+        target = N.TARGETS[self._target()]
+        if self.results and self.results_key == self._key():
+            items = [dict(n=n, before=r["info"].lufs, after=r["stats"]["lufs"], lra_before=r["info"].lra,
+                          lra_after=r["stats"]["lra"]) for n, r in enumerate(self.results, 1)]
+            self.chart.set_data(items, target, True)
+        elif pl:
+            items = []
+            for n, t in enumerate(self.tracks, 1):
+                if t.path in pl:
+                    i = t.info
+                    items.append(dict(n=n, before=i.lufs, after=N.predicted_lufs(i, *pl[t.path]),
+                                      lra_before=i.lra, lra_after=i.lra))
+            self.chart.set_data(items, target, False)
+        else:
+            self.chart.set_data([], target, False)
+        self.chart_group.set_visible(bool(self.chart.items))
 
     # ================================================================ okładka
     def choose_cover(self):
@@ -256,7 +359,9 @@ class AlbumPage(Gtk.Box):
         out_dir = os.path.join(os.path.dirname(infos[0].path), "normalized")
         meta = dict(artist=self.artist_row.get_text().strip(), album=self.album_row.get_text().strip())
         wavq = "cd" if self.wavq_row.get_selected() == 0 else "hires"
-        target, mode, cover = self._target(), self._mode(), self.cover
+        target, mode, cover, mkey = self._target(), self._mode(), self.cover, self._master()
+        run_key = self._key()
+        self.ab.stop()
         self.busy = True
         for t in self.tracks:
             t.ok_icon.set_visible(False)
@@ -270,8 +375,10 @@ class AlbumPage(Gtk.Box):
 
         def work():
             try:
-                res = jobs.normalize_album(self.ex, infos, target, mode, out_dir, formats, wavq, cover, meta, prog)
-                text = jobs.report_text(res, tr, target, mode)
+                res = jobs.normalize_album(self.ex, infos, target, mode, out_dir, formats, wavq, cover, meta, prog,
+                                           master_key=mkey)
+                text = jobs.report_text(res, tr, target, mode, mkey)
+                self.results_key = run_key
                 with open(os.path.join(out_dir, "raport.txt" if i18n.LANG == "pl" else "report.txt"), "w") as f:
                     f.write(text + "\n")
                 GLib.idle_add(self._done, out_dir, res, text, None)
@@ -297,8 +404,15 @@ class AlbumPage(Gtk.Box):
             d.add_response("close", tr("close"))
             d.present(self.win)
             return False
+        self.results = res
+        self._refresh_rows()
+        self._ab_fill()
         self.win.app.notify(tr("done_title"), tr("notif_done", count=count(len(res), "song")))
-        d = Adw.AlertDialog(heading=tr("done_title"), body=tr("done_body", count=count(len(res), "song")))
+        body = tr("done_body", count=count(len(res), "song"))
+        sq = jobs.squashed(res)
+        if sq:
+            body += tr("warn_squash", tracks=", ".join(f"{n:02d}" for n in sq))
+        d = Adw.AlertDialog(heading=tr("done_title"), body=body)
         d.add_response("report", tr("show_report"))
         d.add_response("close", tr("close"))
         d.add_response("open", tr("open_folder"))
@@ -313,6 +427,50 @@ class AlbumPage(Gtk.Box):
         d.connect("response", resp)
         d.present(self.win)
         return False
+
+    # ================================================================ A/B
+    def _ab_fill(self):
+        res = [r for r in (self.results or []) if r["files"]]
+        self.ab_group.set_visible(bool(res))
+        self._ab_res = res
+        names = [f"{n:02d} · {os.path.basename(r['info'].path)}" for n, r in enumerate(self.results or [], 1)
+                 if r["files"]]
+        self.ab_track_row.set_model(Gtk.StringList.new(names))
+        if res:
+            self.ab_track_row.set_selected(0)
+            self._ab_load()
+
+    def _ab_load(self):
+        res = getattr(self, "_ab_res", None)
+        i = self.ab_track_row.get_selected()
+        if not res or i >= len(res):
+            return
+        r = res[i]
+        f = r["files"]
+        b = (f.get("wav") or f.get("mp4") or f.get("mp3"))["path"]
+        ga, gb, ref = ABPlayer.matched_gains(r["info"].lufs, r["stats"]["lufs"])
+        try:
+            self.ab.load(r["info"].path, b, ga, gb)
+        except Exception as e:  # noqa: BLE001
+            L.log(f"A/B: {e}", "error", tag="ab")
+            self.win.toast(str(e))
+            return
+        self.ab_info.set_text(tr("ab_matched", lufs=ref))
+
+    def _ab_sync(self):
+        p = self.ab.playing
+        self.ab_play.set_icon_name("media-playback-pause-symbolic" if p else "media-playback-start-symbolic")
+        self.ab_play.set_tooltip_text(tr("pause") if p else tr("play"))
+
+    def _ab_tick(self):
+        if self.ab.pipe:
+            d, p = self.ab.duration(), self.ab.position()
+            self.ab_pos.handler_block(self._ab_pos_h)
+            self.ab_pos.set_range(0, max(d, 0.1))
+            self.ab_pos.set_value(p)
+            self.ab_pos.handler_unblock(self._ab_pos_h)
+            self.ab_time.set_text(f"{C.fmt_dur(p)} / {C.fmt_dur(d)}")
+        return True
 
     def show_report(self, text):
         w = Adw.Window(transient_for=self.win, modal=True, title=tr("show_report"), default_width=860,

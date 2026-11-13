@@ -45,20 +45,32 @@ już słuchałeś, jest natychmiastowy (cache można bezpiecznie usuwać).
 
 1. Przeciągnij gotowe utwory (kolejność = nazwy plików). Przy każdym widać głośność (LUFS), szczyt (dBTP)
    i **przewidywaną zmianę** dla wybranych ustawień.
-2. **Poziom docelowy:**
-   - Streaming – Spotify, YouTube (−14 LUFS)
-   - Apple Music (−16 LUFS)
-   - CD / sklep (−10 LUFS)
-   - Głośno – klub, rap (−8 LUFS)
-3. **Sposób wyrównania:**
+2. **Płyta w liczbach** – wykres: głośność każdego utworu przed i po (LUFS), linia celu i zakres dynamiki (LRA).
+   Przed normalizacją słupki „po” są przewidywane, po normalizacji – zmierzone.
+3. **Mastering miksu** (opcjonalnie, przed normalizacją): **Bez masteringu**, **Delikatny**, **Ciepły**,
+   **Nowoczesny**, **Mocny** – filtr subsoniczny, korekcja barwy, kompresja „sklejająca”, delikatne nasycenie.
+   Głośność utworu po masteringu zostaje taka sama, więc wyrównanie płyty działa jak wcześniej.
+4. **Poziom docelowy** (z pułapem szczytów dobranym do celu):
+   - Streaming – Spotify, YouTube (−14 LUFS) – szczyty do −1 dBTP
+   - Apple Music (−16 LUFS) – szczyty do −1 dBTP
+   - CD / sklep (−10 LUFS) – szczyty do **−2 dBTP**
+   - Głośno – klub, rap (−8 LUFS) – szczyty do **−2 dBTP**
+
+   Głośne mastery po przekodowaniu w serwisach (Ogg, AAC, Opus) zyskują wyższe szczyty, dlatego dostają 1 dB więcej zapasu
+   (tak zaleca Spotify dla materiału głośniejszego niż −14 LUFS).
+5. **Sposób wyrównania:**
    - **Równe refreny (zalecane)** – głośne fragmenty wszystkich utworów na tym samym poziomie; spokojne zwrotki zachowują dynamikę,
    - **Równa średnia głośność** – identyczny LUFS każdego utworu,
    - **Jedno wzmocnienie dla płyty** – najgłośniejszy utwór trafia w cel, reszta dostaje to samo wzmocnienie (zachowuje różnice z miksu).
-4. **Zapis:** WAV (CD 16 bit/44,1 kHz z ditherem albo Hi-Res 24 bit), MP3 320 kbps, MP4 (AAC 256 kbps, koder FDK) –
+6. **Zapis:** WAV (CD 16 bit/44,1 kHz z ditherem albo Hi-Res 24 bit), MP3 320 kbps, MP4 (AAC 256 kbps, koder FDK) –
    z okładką PNG i tagami (tytuł z nazwy pliku, wykonawca, album, numer).
-5. **NORMALIZUJ CAŁY ALBUM** → folder **`normalized/`** obok oryginałów + `raport.txt` (przed/po, łącznie z poziomem refrenu).
+7. **NORMALIZUJ CAŁY ALBUM** → folder **`normalized/`** obok oryginałów + `raport.txt` (przed/po, refren, LRA
+   i to, o ile dB limiter ściął szczyty). Jeśli w którymś utworze ściął więcej niż 3 dB, aplikacja ostrzega – master może brzmieć płasko.
+8. **Odsłuch A/B** (po normalizacji): wybierasz utwór i przełączasz **A · oryginał** / **B · po** w trakcie odtwarzania.
+   Obie wersje grają z **tą samą głośnością** (głośniejsza jest ściszana), więc słychać tylko różnicę brzmienia –
+   bez złudzenia, że „głośniej = lepiej”.
 
-Brzmienie się nie zmienia: tylko wzmocnienie + ochrona szczytów (miękki clipper i limiter true-peak −1,0 dBTP).
+Bez masteringu brzmienie się nie zmienia: tylko wzmocnienie + ochrona szczytów (miękki clipper i limiter true-peak).
 MP3 i MP4 są sprawdzane **po zakodowaniu** i w razie przesteru automatycznie poprawiane.
 
 ## Mini-terminal
@@ -111,6 +123,11 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 ## Historia wersji
 
+- **0.3.0** – zakładka Album: **mastering miksu** (Delikatny, Ciepły, Nowoczesny, Mocny), **pułap szczytów zależny od celu**
+  (−2 dBTP dla CD i „Głośno”), **wykres płyty** (LUFS przed/po, LRA), **odsłuch A/B z wyrównaną głośnością**,
+  w raporcie LRA i ścięcie limitera z ostrzeżeniem powyżej 3 dB; typograficzny minus w liczbach (−2,0 dBTP);
+  poprawiona statystyka kompresora w logu; link do strony projektu w „O programie” i w paczce.
+
 - **0.2.5** – licencja: aplikacja jest teraz na licencji Freeware License (No Modifications), zob. `LICENSE` — darmowe użytkowanie i udostępnianie bez zmian, bez prawa do modyfikacji; poza tym bez zmian w aplikacji.
 - **0.2.4** – bez zmian w aplikacji: kod w repozytorium w katalogu `src/`, paczka `.deb` na stronie GitHub Releases (budowana automatycznie dla każdego tagu wersji); README: instalacja z Releases.
 - **0.2.3** – mini-terminal schowany przy starcie, otwiera się dopiero po kliknięciu ikony.
@@ -132,9 +149,12 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
   (Studio, Radio, Warm, Space, Rap – EQ, de-esser, compression, saturation, air + reverb/echo), set a **volume**
   and **reverb/echo** slider per track while listening live (peak meter included), then **MERGE ALL TRACKS INTO ONE**
   → a single 24-bit WAV that sounds exactly like the live preview, clip-protected at −1 dBTP.
-- **Album:** drop finished tracks and **NORMALIZE WHOLE ALBUM** – no change to the sound, just an even level:
-  targets Streaming (−14), Apple Music (−16), CD/store (−10), Loud (−8 LUFS); methods equal choruses (recommended),
-  equal average loudness, or one album gain. Export WAV / MP3 / MP4 with cover art and tags, plus a report.
+- **Album:** drop finished tracks and **NORMALIZE WHOLE ALBUM** for an even level:
+  targets Streaming (−14), Apple Music (−16), CD/store (−10), Loud (−8 LUFS), with a peak ceiling matched to the target
+  (−1 dBTP for streaming/Apple, −2 dBTP for loud masters); methods equal choruses (recommended),
+  equal average loudness, or one album gain. Optional **mix mastering** (Gentle, Warm, Modern, Punchy),
+  an **album chart** (LUFS before/after, LRA) and **loudness-matched A/B listening** of original vs result.
+  Export WAV / MP3 / MP4 with cover art and tags, plus a report with LRA and limiter warnings.
 
 PL/EN UI, a mini terminal (top-right) showing what the engine is doing live, splash with version, dark/light app icon that follows the system theme. Ubuntu 24.04+.
 

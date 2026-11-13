@@ -76,7 +76,7 @@ S = {
         "a_drop_sub": "Zmiksowane i zmasterowane WAV-y – kolejność według nazw plików",
         "a_tracks": "Utwory",
         "a_norm": "Normalizacja głośności",
-        "a_norm_sub": "Bez zmiany brzmienia – tylko równy poziom całej płyty i ochrona przed przesterem",
+        "a_norm_sub": "Równy poziom całej płyty i ochrona przed przesterem",
         "target": "Poziom docelowy",
         "target_streaming": "Streaming – Spotify, YouTube (−14 LUFS)",
         "target_apple": "Apple Music (−16 LUFS)",
@@ -107,7 +107,7 @@ S = {
         "notif_done": "Gotowe – {count}",
         "notif_merge": "Wokal scalony",
         "report_title": "Linux Project Mastering Audio – normalizacja albumu",
-        "report_target": "Cel: {target}; sposób: {mode}; limit szczytu −1,0 dBTP",
+        "report_target": "Cel: {target}; sposób: {mode}; limit szczytu {ceil:.1f} dBTP",
         "col_track": "Utwór",
         "col_before": "Przed LUFS/TP",
         "col_after": "Po LUFS/TP",
@@ -181,7 +181,7 @@ S = {
         "a_drop_sub": "Mixed and mastered WAVs – ordered by file name",
         "a_tracks": "Tracks",
         "a_norm": "Loudness normalization",
-        "a_norm_sub": "No change to the sound – just an even level across the album and clip protection",
+        "a_norm_sub": "Even level across the whole album and protection against clipping",
         "target": "Target level",
         "target_streaming": "Streaming – Spotify, YouTube (−14 LUFS)",
         "target_apple": "Apple Music (−16 LUFS)",
@@ -212,7 +212,7 @@ S = {
         "notif_done": "Done – {count}",
         "notif_merge": "Vocal merged",
         "report_title": "Linux Project Mastering Audio – album normalization",
-        "report_target": "Target: {target}; method: {mode}; peak ceiling −1.0 dBTP",
+        "report_target": "Target: {target}; method: {mode}; peak ceiling {ceil:.1f} dBTP",
         "col_track": "Track",
         "col_before": "Before LUFS/TP",
         "col_after": "After LUFS/TP",
@@ -223,6 +223,81 @@ S = {
         "report_units": "LUFS = integrated loudness (EBU R128), TP = true peak in dBTP.",
     },
 }
+
+
+# 0.3.0: mastering miksu, pułap zależny od celu, wykres płyty, odsłuch A/B
+S["pl"].update({
+    "a_master": "Mastering miksu",
+    "a_master_sub": "Opcjonalnie: lekka obróbka całego utworu przed normalizacją",
+    "master_style": "Charakter",
+    "mp_off": "Bez masteringu",
+    "mp_off_d": "Tylko normalizacja – brzmienie bez zmian",
+    "mp_gentle": "Delikatny",
+    "mp_gentle_d": "Lekkie sklejenie miksu i odrobina powietrza",
+    "mp_warm": "Ciepły",
+    "mp_warm_d": "Pełniejszy dół, łagodniejsza góra, nasycenie",
+    "mp_modern": "Nowoczesny",
+    "mp_modern_d": "Czysty środek, więcej obecności i blasku",
+    "mp_punch": "Mocny",
+    "mp_punch_d": "Wyraźny dół i atak, mocniejsza kompresja",
+    "ceiling_info": "Limit szczytów {ceil:.1f} dBTP",
+    "ceiling_info_loud": "Limit szczytów {ceil:.1f} dBTP – głośny master, zapas na kodowanie w serwisach",
+    "report_master": "Mastering: {name}",
+    "col_limiter": "Limiter",
+    "report_squash": "UWAGA: w utworach {tracks} limiter ściął szczyty o ponad {db:.0f} dB – mogą brzmieć płasko. "
+                     "Rozważ niższy poziom docelowy albo tryb „Jedno wzmocnienie dla płyty”.",
+    "report_lra": "LRA = zakres dynamiki (EBU R128) przed > po; im mniejszy, tym bardziej ściśnięty utwór.",
+    "report_limiter": "Limiter = o ile dB ścięto najwyższy szczyt; powyżej 3 dB utwór może brzmieć płasko (!).",
+    "warn_squash": "\n\n⚠ W utworach {tracks} limiter mocno ściął szczyty – szczegóły w raporcie.",
+    "chart_title": "Płyta w liczbach",
+    "chart_sub": "Głośność utworów przed i po (LUFS) oraz zakres dynamiki (LRA)",
+    "chart_before": "przed",
+    "chart_after": "po",
+    "chart_pred": "po (przewidywane)",
+    "chart_target": "cel",
+    "ab_title": "Odsłuch A/B",
+    "ab_sub": "Oryginał i wynik grają z tą samą głośnością – słychać tylko różnicę brzmienia",
+    "ab_track": "Utwór",
+    "ab_a": "A · oryginał",
+    "ab_b": "B · po",
+    "ab_matched": "Obie wersje wyrównane do {lufs:.1f} LUFS",
+})
+S["en"].update({
+    "a_master": "Mix mastering",
+    "a_master_sub": "Optional: light processing of the whole track before normalization",
+    "master_style": "Character",
+    "mp_off": "No mastering",
+    "mp_off_d": "Normalization only – sound unchanged",
+    "mp_gentle": "Gentle",
+    "mp_gentle_d": "Light glue and a touch of air",
+    "mp_warm": "Warm",
+    "mp_warm_d": "Fuller lows, softer highs, saturation",
+    "mp_modern": "Modern",
+    "mp_modern_d": "Clean mids, more presence and sparkle",
+    "mp_punch": "Punchy",
+    "mp_punch_d": "Solid low end and attack, firmer compression",
+    "ceiling_info": "Peak ceiling {ceil:.1f} dBTP",
+    "ceiling_info_loud": "Peak ceiling {ceil:.1f} dBTP – loud master, headroom for streaming encoders",
+    "report_master": "Mastering: {name}",
+    "col_limiter": "Limiter",
+    "report_squash": "WARNING: in tracks {tracks} the limiter cut peaks by more than {db:.0f} dB – they may sound flat. "
+                     "Consider a lower target or the “One gain for the whole album” method.",
+    "report_lra": "LRA = loudness range (EBU R128) before > after; the smaller, the more squashed the track.",
+    "report_limiter": "Limiter = how many dB the highest peak was cut; above 3 dB a track may sound flat (!).",
+    "warn_squash": "\n\n⚠ In tracks {tracks} the limiter cut peaks hard – see the report.",
+    "chart_title": "The album in numbers",
+    "chart_sub": "Track loudness before and after (LUFS) and loudness range (LRA)",
+    "chart_before": "before",
+    "chart_after": "after",
+    "chart_pred": "after (predicted)",
+    "chart_target": "target",
+    "ab_title": "A/B listening",
+    "ab_sub": "Original and result play at the same loudness – you hear only the difference in sound",
+    "ab_track": "Track",
+    "ab_a": "A · original",
+    "ab_b": "B · after",
+    "ab_matched": "Both versions matched to {lufs:.1f} LUFS",
+})
 
 
 def load_settings():
@@ -285,8 +360,10 @@ class _Fmt(string.Formatter):
 
     def format_field(self, value, spec):
         out = super().format_field(value, spec)
-        if LANG == "pl" and isinstance(value, float):
-            out = out.replace(".", ",")
+        if isinstance(value, float):
+            out = out.replace("-", "−")          # typograficzny minus (−2,0 dBTP)
+            if LANG == "pl":
+                out = out.replace(".", ",")
         return out
 
 

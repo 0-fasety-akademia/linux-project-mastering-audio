@@ -205,7 +205,7 @@ def compressor(x, fs, thr_db, ratio, attack_ms, release_ms, knee_db=8.0):
     centers = np.arange(nb) * blk + blk / 2
     gs = np.interp(np.arange(n), centers, sm)
     y = (x * (10 ** (gs / 20))[:, None]).astype(x.dtype)
-    return y, float(-np.percentile(sm, 95))
+    return y, float(-np.percentile(sm, 5))        # redukcja w najgłośniejszych 5% czasu
 
 
 def saturate(x, amount):

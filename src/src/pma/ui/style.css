@@ -135,3 +135,16 @@ levelbar.peak-meter > trough {
   font-size: 0.8em;
   padding: 2px 10px 8px 10px;
 }
+
+/* 0.3.0: odsłuch A/B i wykres płyty */
+.ab-side {
+  min-width: 112px;
+  font-weight: 600;
+}
+.ab-side:checked {
+  background: alpha(@accent_bg_color, 0.85);
+  color: @accent_fg_color;
+}
+.chart-card {
+  padding: 4px;
+}

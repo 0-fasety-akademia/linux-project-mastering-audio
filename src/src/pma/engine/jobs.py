@@ -35,13 +35,16 @@ def clean_title(path):
 
 
 # ------------------------------------------------------------------ album
-def normalize_album(ex, infos, target, mode, out_dir, formats, wav_quality, cover, meta, on_progress=None):
+def normalize_album(ex, infos, target, mode, out_dir, formats, wav_quality, cover, meta, on_progress=None,
+                    master_key="off"):
     ok = [i for i in infos if not i.error]
     pl = N.plan(ok, target, mode)
-    L.log(f"normalizacja: {count(len(ok), 'song', 'pl')}, cel {N.TARGETS[target]:+.1f} LUFS, tryb {mode}", tag="album")
+    ceil = N.ceiling(target)
+    L.log(f"normalizacja: {count(len(ok), 'song', 'pl')}, cel {N.TARGETS[target]:+.1f} LUFS, tryb {mode}, "
+          f"pułap {ceil:.1f} dBTP, mastering {master_key}", tag="album")
     results = [None] * len(ok)
     futs = [ex.submit(N._job, n, i.path, *pl[i.path], out_dir, tuple(formats), wav_quality, cover, meta,
-                      len(ok), clean_title(i.path)) for n, i in enumerate(ok)]
+                      len(ok), clean_title(i.path), master_key, ceil) for n, i in enumerate(ok)]
     done = 0
     for f in as_completed(futs):
         idx, st, files = f.result()
@@ -52,19 +55,32 @@ def normalize_album(ex, infos, target, mode, out_dir, formats, wav_quality, cove
     return results
 
 
-def report_text(results, tr, target, mode):
-    lines = [tr("report_title"), "=" * 90,
-             tr("report_target", target=tr("target_" + target), mode=tr("mode_" + mode)), ""]
+def squashed(results):
+    """Numery utworów (od 1), w których limiter ściął szczyty o więcej niż N.SQUASH_WARN_DB."""
+    return [n for n, r in enumerate(results, 1) if r["stats"]["limited"] > N.SQUASH_WARN_DB]
+
+
+def report_text(results, tr, target, mode, master_key="off"):
+    ceil = N.ceiling(target)
+    lines = [tr("report_title"), "=" * 104,
+             tr("report_target", target=tr("target_" + target), mode=tr("mode_" + mode), ceil=ceil),
+             tr("report_master", name=tr("mp_" + master_key)), ""]
     lines.append(f"{'#':>2}  {tr('col_track'):30s} {tr('col_before'):>16s} {tr('col_after'):>16s}   "
-                 f"{tr('col_chorus'):>13s}")
+                 f"{tr('col_chorus'):>13s}  {'LRA':>9s}  {tr('col_limiter'):>8s}")
     for n, r in enumerate(results, 1):
         i, st = r["info"], r["stats"]
         before = f"{i.lufs:6.1f} / {i.true_peak:5.1f}"
         after = f"{st['lufs']:6.1f} / {st['true_peak']:5.1f}"
         chorus = f"{i.loud:5.1f} > {st['loud']:5.1f}"
-        lines.append(f"{n:>2}  {os.path.basename(i.path)[:30]:30s} {before:>16s} {after:>16s}   {chorus:>13s}")
+        lra = f"{i.lra:4.1f} > {st['lra']:4.1f}"
+        lim = f"{st['limited']:4.1f} dB" + (" !" if st["limited"] > N.SQUASH_WARN_DB else "  ")
+        lines.append(f"{n:>2}  {os.path.basename(i.path)[:30]:30s} {before:>16s} {after:>16s}   {chorus:>13s}  "
+                     f"{lra:>9s}  {lim:>8s}")
         for fmt, f in r["files"].items():
-            ok = f["true_peak"] is not None and f["true_peak"] <= N.CEILING_DBTP + 0.01
+            ok = f["true_peak"] is not None and f["true_peak"] <= ceil + 0.01
             lines.append(f"      {fmt.upper():4s} true peak {f['true_peak']:6.2f} dBTP  {'OK' if ok else '!!'}")
-    lines += ["", tr("report_units"), tr("report_chorus")]
+    sq = squashed(results)
+    if sq:
+        lines += ["", tr("report_squash", tracks=", ".join(f"{n:02d}" for n in sq), db=N.SQUASH_WARN_DB)]
+    lines += ["", tr("report_units"), tr("report_chorus"), tr("report_lra"), tr("report_limiter")]
     return "\n".join(lines)
