@@ -38,7 +38,7 @@ Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1 (>= 1.5),
  gir1.2-gstreamer-1.0, gir1.2-gst-plugins-base-1.0, gstreamer1.0-plugins-good,
  ffmpeg, fdkaac, librsvg2-common
 Description: Linux Project Mastering Audio – vocal mastering and album loudness normalization
- Vocals tab: master 1-10 vocal tracks with 10 styles or MANUAL sliders (reverb/echo included),
+ Vocals tab: master 1-10 vocal tracks with 11 styles (incl. AUTO-TUNE) or MANUAL sliders (reverb/echo included),
  set volume and effect per track while listening live, merge into one WAV.
  Album tab: normalize the loudness of finished tracks to an even level
  (WAV / MP3 / MP4 with cover art), optional mix mastering,

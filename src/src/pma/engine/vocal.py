@@ -36,6 +36,7 @@ class VocalPreset:
     reverb: dict = field(default_factory=dict)   # size_s, predelay_ms, damp_hz, mix
     delay: dict = field(default_factory=dict)    # time_ms, feedback, pingpong, mix
     fx_default: int = 20      # domyślna pozycja suwaka pogłosu/echa (0–100)
+    tune: float = 0.0         # korekcja wysokości (auto-tune): 0 = wył., 1 = twarda (efekt „robota”)
 
 
 PRESETS = {
@@ -82,13 +83,19 @@ PRESETS = {
         "podcast", hp=90, eq=[("peak", 300, -2.5, 1.2), ("peak", 3000, 2.0, 1.0), ("high", 10000, 1.0, 0.7)],
         deess=4.0, comp_thr=-28, comp_ratio=4.0, attack_ms=5, release_ms=80, saturation=0.1,
         reverb={}, delay={}, fx_default=0),
+    "autotune": VocalPreset(
+        "autotune", hp=100, eq=[("peak", 300, -2.0, 1.1), ("peak", 3000, 2.5, 1.0), ("high", 12000, 3.0, 0.7)],
+        deess=4.5, comp_thr=-26, comp_ratio=4.0, attack_ms=5, release_ms=90, saturation=0.15,
+        reverb=dict(size_s=1.2, predelay_ms=20, damp_hz=8000, mix=0.8),
+        delay=dict(time_ms=160, feedback=0.2, pingpong=True, mix=0.35), fx_default=22, tune=1.0),
     "lofi": VocalPreset(
         "lofi", hp=200, eq=[("peak", 1000, 2.0, 0.8), ("high", 7000, -6.0, 0.7)],
         deess=6.0, comp_thr=-26, comp_ratio=4.0, attack_ms=10, release_ms=120, saturation=0.5,
         reverb=dict(size_s=0.8, predelay_ms=10, damp_hz=4000, mix=0.7),
         delay=dict(time_ms=250, feedback=0.25, pingpong=False, mix=0.4), fx_default=25),
 }
-PRESET_ORDER = ["studio", "radio", "warm", "space", "rap", "pop", "acoustic", "rnb", "podcast", "lofi", "manual"]
+PRESET_ORDER = ["studio", "radio", "warm", "space", "rap", "pop", "acoustic", "rnb", "podcast", "lofi", "autotune",
+                "manual"]
 
 # MANUAL: suwaki w kaflach (zakładka Wokal). Wartości startowe = „Studio”.
 MANUAL_DEFAULT = dict(lowcut=90.0, body=0.0, mud=-2.0, presence=2.0, air=2.5,
@@ -153,6 +160,95 @@ def deesser(x, fs, thr_db, ratio=4.0, f0=5500):
         sm[i] = g
     gs = 10 ** (np.interp(np.arange(n), np.arange(nb) * blk + blk / 2, sm) / 20)
     return (x - hb + hb * gs[:, None]).astype(np.float32)
+
+
+# ----------------------------------------------------------------- auto-tune
+def detect_pitch(m, fs, hop_s=0.01, fmin=70.0, fmax=1000.0, frame=2048, thr=0.45):
+    """Wysokość (Hz) co hop_s s z autokorelacji; 0 = bezdźwięczne / cisza. m – sygnał mono."""
+    hop = int(fs * hop_s)
+    n = max(1, (len(m) - frame) // hop + 1)
+    idx = np.arange(frame)[None, :] + hop * np.arange(n)[:, None]
+    fr = m[np.minimum(idx, len(m) - 1)] * np.hanning(frame)[None, :]
+    spec = np.fft.rfft(fr, 2 * frame, axis=1)
+    ac = np.fft.irfft(np.abs(spec) ** 2, axis=1)[:, :frame]
+    lo, hi = int(fs / fmax), min(frame - 2, int(fs / fmin))
+    seg = ac[:, lo:hi]
+    lag = np.argmax(seg, axis=1) + lo
+    r0 = np.maximum(ac[:, 0], 1e-12)
+    peak = ac[np.arange(n), lag] / r0
+    # dokładniej: interpolacja paraboliczna wokół szczytu
+    a, b, c = ac[np.arange(n), lag - 1], ac[np.arange(n), lag], ac[np.arange(n), np.minimum(lag + 1, frame - 1)]
+    den = a - 2 * b + c
+    with np.errstate(invalid="ignore", divide="ignore"):
+        shift = np.where(np.abs(den) > 1e-12, 0.5 * (a - c) / den, 0.0)
+    f0 = fs / (lag + shift)
+    rms = np.sqrt((fr ** 2).mean(axis=1))
+    loud = rms > rms.max() * 10 ** (-40 / 20) if rms.size else rms
+    return np.where((peak > thr) & loud, f0, 0.0), hop
+
+
+def autotune(x, fs, strength=1.0):
+    """Ściąga wysokość głosu do najbliższego półtonu (strój równomiernie temperowany, A = 440 Hz).
+    strength 1 = twarda korekcja (charakterystyczny „robotyczny” efekt).
+    Metoda TD-PSOLA: znaczniki analizy co okres głosu, znaczniki syntezy co okres / współczynnik;
+    przy każdym znaczniku syntezy wstawiane jest ziarno 2 okresów (okno Hanna) – czas trwania się nie zmienia."""
+    x = as2d_f32(x)
+    n = len(x)
+    m = x.mean(axis=1)
+    f0, hop = detect_pitch(m, fs)
+    voiced = f0 > 0
+    midi = np.where(voiced, 69 + 12 * np.log2(np.maximum(f0, 1e-6) / 440.0), 0.0)
+    if voiced.sum() >= 3:                                   # wygładzenie pojedynczych błędów oktawy
+        med = signal.medfilt(midi, 5)
+        midi = np.where(voiced & (np.abs(midi - med) > 6), med, midi)
+        f0 = np.where(voiced, 440.0 * 2 ** ((midi - 69) / 12), 0.0)
+    ratio = np.where(voiced, 2 ** ((np.round(midi) - midi) * strength / 12), 1.0)
+    frame_t = np.arange(len(f0)) * hop + 1024               # środek ramki analizy
+    unv = int(fs * 0.01)                                    # pseudo-okres dla fragmentów bezdźwięcznych
+
+    def at(t):
+        k = min(len(f0) - 1, max(0, int(round((t - 1024) / hop))))
+        return (int(round(fs / f0[k])) if f0[k] > 0 else unv), ratio[k]
+
+    # znaczniki analizy: co okres, dopasowane do najbliższego maksimum przebiegu (spójna faza ziaren)
+    marks, periods = [], []
+    t = 0
+    while t < n:
+        T, _r = at(t)
+        a, b = max(0, t - T // 4), min(n, t + T // 4 + 1)
+        if b > a:
+            t = a + int(np.argmax(np.abs(m[a:b])))
+        marks.append(t)
+        periods.append(T)
+        t += max(T, 16)
+    marks = np.array(marks)
+    periods = np.array(periods)
+    out = np.zeros((n, x.shape[1]))
+    norm = np.zeros(n)
+    ts = 0.0
+    while ts < n:
+        k = int(np.argmin(np.abs(marks - ts))) if len(marks) else 0
+        T = int(periods[k])
+        _T, r = at(ts)
+        src = marks[k]
+        g0, g1 = src - T, src + T
+        d0 = int(round(ts)) - T
+        lo = max(0, g0, g0 - d0)                            # wspólny zakres źródła i celu
+        hi = min(n, g1, n - (d0 - g0))
+        if hi > lo:
+            w = np.hanning(2 * T)[lo - g0:hi - g0]
+            dst = slice(lo + d0 - g0, hi + d0 - g0)
+            out[dst] += x[lo:hi] * w[:, None]
+            norm[dst] += w
+        ts += max(T / r, 16)
+    y = out / np.maximum(norm, 1e-3)[:, None]
+    y = np.where(norm[:, None] > 1e-3, y, x)
+    return y.astype(np.float32), float(voiced.mean()) if voiced.size else 0.0
+
+
+def as2d_f32(x):
+    x = np.asarray(x, dtype=np.float32)
+    return x[:, None] if x.ndim == 1 else x
 
 
 def _reverb_ir(fs, size_s, predelay_ms, damp_hz, seed=11):
@@ -221,6 +317,9 @@ def render_wet(dry, fs, p, name=""):
 
 def process_dry(x, fs, p, name=""):
     x = dsp.apply_sos(x.astype(np.float32), [dsp.highpass(fs, p.hp, 2)])
+    if p.tune > 0:
+        x, voiced = autotune(x, fs, p.tune)
+        L.log(f"{name}: auto-tune – dźwięczne {voiced:.0%} ramek ściągnięte do półtonów", tag="vocal")
     x = dsp.apply_sos(x, dsp.eq_chain(fs, p.eq))
     eq = ", ".join(f"{f:g} Hz {g:+.1f}" for _k, f, g, _q in p.eq)
     L.log(f"{name}: filtr {p.hp:g} Hz, EQ [{eq}]", tag="vocal")

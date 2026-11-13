@@ -31,6 +31,7 @@ To nie jest drugi Audacity – tylko to, co potrzebne.
    | **R&B / Soul** | ciepły i gładki | długi pogłos + echo ping-pong (30%) |
    | **Mowa** | podcast, lektor – sucho i wyraźnie | bez efektu (0%) |
    | **Lo-fi** | wąskie pasmo, nasycenie, vintage | mały pogłos + echo (25%) |
+   | **AUTO-TUNE** | twarda korekcja wysokości – robotyczny wokal | pogłos + echo ping-pong (22%) |
    | **MANUAL** | wszystko ustawiasz sam suwakami | – |
 
    Po wyborze **MANUAL** pod ścieżkami pojawiają się kafle z suwakami (2–4 w rzędzie, zależnie od szerokości okna):
@@ -148,6 +149,9 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 ## Historia wersji
 
+- **0.5.1** – Wokal: nowa opcja **AUTO-TUNE** – twarda korekcja wysokości do najbliższego półtonu (charakterystyczny
+  „robotyczny” wokal; własny silnik TD-PSOLA, bez dodatkowych bibliotek); kafelek **MANUAL** przeniesiony na koniec.
+
 - **0.5.0** – Album: **próbka masteringu** – 20 s najgłośniejszego fragmentu wybranego utworu z wybranym masteringiem
   i poziomem, od razu w odsłuchu A/B (bez normalizowania całej płyty); **dwa mierniki obok siebie** (A i B, w stylu
   motywu, słyszana wersja podświetlona); zmiana masteringu, poziomu, sposobu albo listy utworów **zatrzymuje
@@ -183,8 +187,8 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
 
 **Linux Project Mastering Audio** – two tabs:
 
-- **Vocals:** drop 1–10 vocal WAVs (lead, ad-libs, backing…), pick one of 10 vocal mastering options
-  (Studio, Radio, Warm, Space, Rap, Pop, Acoustic, R&B / Soul, Speech, Lo-fi – EQ, de-esser, compression, saturation,
+- **Vocals:** drop 1–10 vocal WAVs (lead, ad-libs, backing…), pick one of 11 vocal mastering options
+  (Studio, Radio, Warm, Space, Rap, Pop, Acoustic, R&B / Soul, Speech, Lo-fi, AUTO-TUNE (hard pitch correction) – EQ, de-esser, compression, saturation,
   air + reverb/echo) or **MANUAL** with slider tiles (EQ, compression, de-esser & saturation, space), set a **volume**
   and **reverb/echo** slider per track while listening live (peak meter included), then **MERGE ALL TRACKS INTO ONE**
   → a single 24-bit WAV that sounds exactly like the live preview, clip-protected at −1 dBTP.
