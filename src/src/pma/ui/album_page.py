@@ -60,8 +60,25 @@ class AlbumPage(Gtk.Box):
 
     # ================================================================ UI
     def _main(self):
-        page = Adw.PreferencesPage()
-        tg = Adw.PreferencesGroup(title=tr("a_tracks"))
+        # dwie kolumny: lewa – utwory, wykres, odsłuch A/B; prawa – ustawienia i zapis.
+        # Przy wąskim oknie (breakpoint w window.py) kolumny układają się jedna pod drugą.
+        self.columns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=40, homogeneous=True)
+        self.columns.set_vexpand(False)       # rozciąganie wykresu kończy się na wysokości kolumn, nie okna
+        for m in ("top", "bottom", "start", "end"):
+            getattr(self.columns, f"set_margin_{m}")(28 if m in ("start", "end") else 24 if m == "top" else 0)
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=28)      # wykres rozciąga się do dołu prawej kolumny
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=28, valign=Gtk.Align.START)
+        self.columns.append(left)
+        self.columns.append(right)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=28)
+        outer.append(self.columns)
+        self.ab_holder = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)     # odsłuch A/B na całą szerokość
+        for m in ("bottom", "start", "end"):
+            getattr(self.ab_holder, f"set_margin_{m}")(28 if m != "bottom" else 24)
+        outer.append(self.ab_holder)
+        clamp = Adw.Clamp(maximum_size=1320, tightening_threshold=1000, child=outer)
+        page = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, child=clamp)
+        tg = Adw.PreferencesGroup(title=tr("a_tracks"), description=tr("a_tracks_sub"))
         hb = Gtk.Box(spacing=4)
         for icon, tip, cb in (("list-add-symbolic", tr("add_files"), self.choose_files),
                               ("edit-clear-all-symbolic", tr("clear"), self.clear)):
@@ -73,25 +90,32 @@ class AlbumPage(Gtk.Box):
         self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         self.list.add_css_class("boxed-list")
         tg.add(self.list)
-        page.add(tg)
+        left.append(tg)
 
         self.chart_group = Adw.PreferencesGroup(title=tr("chart_title"), description=tr("chart_sub"), visible=False)
         self.chart = AlbumChart()
-        card = Gtk.Box()
+        self.chart.set_vexpand(True)
+        card = Gtk.Box(vexpand=True)
+        self.chart_card = card
         card.add_css_class("card")
         card.add_css_class("chart-card")
         for m in ("top", "bottom", "start", "end"):
             getattr(self.chart, f"set_margin_{m}")(12)
         card.append(self.chart)
         self.chart_group.add(card)
-        page.add(self.chart_group)
+        left.append(self.chart_group)
 
         mg = Adw.PreferencesGroup(title=tr("a_master"), description=tr("a_master_sub"))
         self.master_row = Adw.ComboRow(title=tr("master_style"),
                                        model=Gtk.StringList.new([tr("mp_" + k) for k in M.ORDER]))
+        # niewidoczny „bliźniak” przycisków z nagłówka „Utwory” – nagłówki i karty obu kolumn zaczynają się równo
+        ghost = Gtk.Button(icon_name="list-add-symbolic", valign=Gtk.Align.CENTER, opacity=0, can_focus=False,
+                           can_target=False)
+        ghost.add_css_class("flat")
+        mg.set_header_suffix(ghost)
         self.master_row.connect("notify::selected", lambda *_: self._refresh_rows())
         mg.add(self.master_row)
-        page.add(mg)
+        right.append(mg)
 
         ng = Adw.PreferencesGroup(title=tr("a_norm"), description=tr("a_norm_sub"))
         self.target_row = Adw.ComboRow(title=tr("target"),
@@ -101,7 +125,7 @@ class AlbumPage(Gtk.Box):
         for r in (self.target_row, self.mode_row):
             r.connect("notify::selected", lambda *_: self._refresh_rows())
             ng.add(r)
-        page.add(ng)
+        right.append(ng)
 
         o = Adw.PreferencesGroup(title=tr("output"))
         self.wavq_row = Adw.ComboRow(title=tr("wav_quality"), model=Gtk.StringList.new([tr("wav_cd"), tr("wav_hires")]))
@@ -129,8 +153,8 @@ class AlbumPage(Gtk.Box):
         self.cover_row.add_suffix(self.cover_rm)
         self.cover_row.connect("activated", lambda *_: self.choose_cover())
         o.add(self.cover_row)
-        page.add(o)
-        page.add(self._ab_group())
+        right.append(o)
+        self.ab_holder.append(self._ab_group())
         return page
 
     def _ab_group(self):
@@ -469,7 +493,9 @@ class AlbumPage(Gtk.Box):
 
     def _ab_tick(self):
         if self.ab.pipe:
-            d, p = self.ab.duration(), self.ab.position()
+            self.ab.check_stall()
+            pend = self.ab.pending_position()
+            d, p = self.ab.duration(), (pend if pend is not None else self.ab.position())
             self.ab_pos.handler_block(self._ab_pos_h)
             self.ab_pos.set_range(0, max(d, 0.1))
             self.ab_pos.set_value(p)

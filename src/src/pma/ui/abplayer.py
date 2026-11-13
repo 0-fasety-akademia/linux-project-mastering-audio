@@ -3,11 +3,14 @@ przełącznik tylko zmienia, która ścieżka jest słyszalna – bez przeskoku 
 Obie wersje są wyrównane do tej samej głośności (ciszej grająca nigdy nie jest podbijana)."""
 import os
 
-from gi.repository import Gst
+import gi
 
-from ..engine.dsp import undb
-from .. import log as L
-from .mixer import LiveMixer, _q
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst  # noqa: E402
+
+from ..engine.dsp import undb  # noqa: E402
+from .. import log as L  # noqa: E402
+from .mixer import LiveMixer, _q  # noqa: E402
 
 CAPS = "audio/x-raw,format=F32LE,channels=2,rate=48000"
 
@@ -29,6 +32,7 @@ class ABPlayer(LiveMixer):
         was = self.playing
         self._teardown()
         self.paths = (path_a, path_b)
+        self._gain_db = (gain_a_db, gain_b_db)
         self.gains = (undb(gain_a_db), undb(gain_b_db))
         sink = "fakesink sync=true" if os.environ.get("PMA_FAKESINK") else "autoaudiosink"
         parts = [f"audiomixer name=mix ! audioconvert ! audio/x-raw,format=F32LE ! "
@@ -51,6 +55,14 @@ class ABPlayer(LiveMixer):
         if was:
             self.play()
         self._notify()
+
+    def recover(self, pos):
+        side = self.side
+        self.playing = False
+        self.load(*self.paths, *self._gain_db)
+        self.set_side(side)
+        self.seek(pos, now=True)
+        self.play()
 
     def set_side(self, side):
         self.side = side

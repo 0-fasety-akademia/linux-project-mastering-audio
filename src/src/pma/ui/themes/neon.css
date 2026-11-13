@@ -36,7 +36,7 @@ button.suggested-action.circular {
   color: white;
 }
 .ab-side { border-radius: 999px; }
-.ab-side:checked {
+button.ab-side:checked:not(.flat) {
   background: #e8eaff;
   color: #0b0d1a;
 }

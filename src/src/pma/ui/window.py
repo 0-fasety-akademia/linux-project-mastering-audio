@@ -18,7 +18,7 @@ class MainWindow(Adw.ApplicationWindow):
     def __init__(self, app, executor):
         super().__init__(application=app, title=APP_NAME)
         self.app = app
-        self.set_default_size(1040, 880)
+        self.set_default_size(1280, 900)
         self.set_size_request(780, 620)
 
         self.vocal = VocalPage(self, executor)
@@ -58,6 +58,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.toasts = Adw.ToastOverlay(child=overlay)
         tv.set_content(self.toasts)
         self.set_content(tv)
+        # wąskie okno: zakładka Album w jednej kolumnie
+        bp = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 960sp"))
+        bp.add_setter(self.album.columns, "orientation", Gtk.Orientation.VERTICAL)
+        bp.add_setter(self.album.columns, "homogeneous", False)
+        self.add_breakpoint(bp)
         if os.environ.get("PMA_START_TAB") == "album":
             self.views.set_visible_child_name("album")
 

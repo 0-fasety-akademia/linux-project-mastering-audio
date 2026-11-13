@@ -2,6 +2,7 @@
 głośność i pogłos zmieniane w trakcie odtwarzania, miernik szczytu."""
 import os
 import re
+import time
 
 import gi
 
@@ -26,6 +27,9 @@ class LiveMixer:
         self.on_state = on_state
         self.on_level = on_level
         self._dur = 0.0
+        self._seek_to = None      # cel przewijania czekający na wykonanie (suwak w ruchu)
+        self._seek_src = 0
+        self._wd = (0.0, 0.0)     # strażnik: (ostatnia pozycja, kiedy ostatnio się zmieniła)
 
     # ------------------------------------------------------------ budowa
     def set_tracks(self, tracks):
@@ -54,7 +58,7 @@ class LiveMixer:
         self.pipe.get_state(3 * Gst.SECOND)
         self._dur = 0.0
         if pos > 0:
-            self.seek(pos)
+            self.seek(pos, now=True)
         if was:
             self.play()
         self._notify()
@@ -68,6 +72,10 @@ class LiveMixer:
             self.pipe.get_by_name(f"wet{i}").set_property("volume", min(v * fx_gain(t.fx), 10.0))
 
     def _teardown(self):
+        if self._seek_src:
+            GLib.source_remove(self._seek_src)
+            self._seek_src = 0
+        self._seek_to = None
         if self.pipe:
             self.pipe.set_state(Gst.State.NULL)
             self.pipe.get_bus().remove_signal_watch()
@@ -110,16 +118,66 @@ class LiveMixer:
             self._dur = d / Gst.SECOND if ok and d > 0 else 0.0
         return self._dur
 
-    def seek(self, sec):
-        if self.pipe:
-            self.pipe.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
-                                  int(max(0.0, sec) * Gst.SECOND))
+    def seek(self, sec, now=False):
+        """Przewijanie z opóźnieniem 150 ms od ostatniego ruchu suwaka: przeciąganie wysyła dziesiątki
+        zdarzeń, a seria skoków w trakcie grania potrafiła zatkać serwer dźwięku (PipeWire „OVERFLOW”)."""
+        if not self.pipe:
+            return
+        self._seek_to = max(0.0, sec)
+        if self._seek_src:
+            GLib.source_remove(self._seek_src)
+            self._seek_src = 0
+        if now:
+            self._do_seek()
+        else:
+            self._seek_src = GLib.timeout_add(150, self._do_seek)
+
+    def pending_position(self):
+        return self._seek_to
+
+    def _do_seek(self):
+        self._seek_src = 0
+        target, self._seek_to = self._seek_to, None
+        if not self.pipe or target is None:
+            return False
+        was = self.playing
+        if was:                                   # skok na zatrzymanym potoku, potem wznowienie
+            self.pipe.set_state(Gst.State.PAUSED)
+            self.pipe.get_state(Gst.SECOND)
+        self.pipe.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
+                              int(target * Gst.SECOND))
+        self.pipe.get_state(2 * Gst.SECOND)
+        if was:
+            self.pipe.set_state(Gst.State.PLAYING)
+        self._wd = (target, time.monotonic())
+        L.log(f"przewinięto do {target:.1f} s", tag="player")
+        return False
+
+    def check_stall(self):
+        """Wołane co ~200 ms z UI: jeśli gra, a pozycja stoi > 2 s, odbudowuje potok w tym miejscu."""
+        if not (self.pipe and self.playing) or self._seek_to is not None:
+            self._wd = (self.position(), time.monotonic())
+            return
+        pos, now = self.position(), time.monotonic()
+        if abs(pos - self._wd[0]) > 0.02:
+            self._wd = (pos, now)
+        elif now - self._wd[1] > 2.0 and pos < self.duration() - 0.5:
+            L.log(f"odtwarzanie stanęło na {pos:.1f} s – odbudowuję potok", "warn", tag="player")
+            self._wd = (pos, now)
+            self.recover(pos)
+
+    def recover(self, pos):
+        tracks = list(self.tracks)
+        self._teardown()
+        self.set_tracks(tracks)
+        self.seek(pos, now=True)
+        self.play()
 
     # ------------------------------------------------------------ bus
     def _eos(self, *_):
         def back():
             self.pause()
-            self.seek(0)
+            self.seek(0, now=True)
             return False
         GLib.idle_add(back)
 

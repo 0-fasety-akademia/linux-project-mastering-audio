@@ -137,6 +137,9 @@ Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/
   w raporcie LRA i ścięcie limitera z ostrzeżeniem powyżej 3 dB; typograficzny minus w liczbach (−2,0 dBTP);
   poprawiona statystyka kompresora w logu; link do strony projektu w „O programie” i w paczce;
   **motywy**: Systemowy, Neon Studio, Hologram, Konsola analogowa (menu → Motyw), miernik poziomu w odsłuchu A/B.
+  Zakładka Album w **dwóch równych kolumnach** (utwory i wykres | ustawienia), odsłuch A/B pod spodem na całą szerokość;
+  w wąskim oknie jedna kolumna. Przewijanie w odsłuchu (A/B i Wokal) bez zawieszania: skok dopiero po zatrzymaniu suwaka,
+  a gdy odtwarzanie mimo to stanie, odtwarzacz sam się odbudowuje w tym samym miejscu.
 
 - **0.2.5** – licencja: aplikacja jest teraz na licencji Freeware License (No Modifications), zob. `LICENSE` — darmowe użytkowanie i udostępnianie bez zmian, bez prawa do modyfikacji; poza tym bez zmian w aplikacji.
 - **0.2.4** – bez zmian w aplikacji: kod w repozytorium w katalogu `src/`, paczka `.deb` na stronie GitHub Releases (budowana automatycznie dla każdego tagu wersji); README: instalacja z Releases.

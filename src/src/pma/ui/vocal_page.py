@@ -373,8 +373,10 @@ class VocalPage(Gtk.Box):
 
     def _tick(self):
         if self.mixer.pipe:
+            self.mixer.check_stall()
             d = self.mixer.duration()
-            p = self.mixer.position()
+            pend = self.mixer.pending_position()
+            p = pend if pend is not None else self.mixer.position()
             self.pos.handler_block(self._pos_h)
             self.pos.set_range(0, max(d, 0.1))
             self.pos.set_value(p)
