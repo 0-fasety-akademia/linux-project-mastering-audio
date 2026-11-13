@@ -10,7 +10,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gtk  # noqa: E402
 
-ORDER = ["system", "neon", "holo", "analog"]
+ORDER = ["system", "neon", "holo", "analog", "pro"]
 DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "themes")
 
 # kolory Adwaity nadpisywane przez motyw
@@ -23,6 +23,12 @@ COLORS = {
                  headerbar_bg="#030b14", headerbar_fg="#7fe9ff", card_bg="rgba(46,230,255,0.05)",
                  card_fg="#bff4ff", popover_bg="#061826", popover_fg="#bff4ff", dialog_bg="#061826",
                  dialog_fg="#bff4ff", accent_bg="#00b8d9", accent_fg="#001018", accent="#2ee6ff"),
+    # Studio Pro: ergonomia długiej pracy – bez czystej czerni/bieli, hierarchia tłem zamiast ramek,
+    # jeden przygaszony akcent (bursztyn), stonowane kolory mierników
+    "pro": dict(window_bg="#1E1F22", window_fg="#E0E2E6", view_bg="#1A1B1E", view_fg="#E0E2E6",
+                headerbar_bg="#1A1B1E", headerbar_fg="#D4D7DD", card_bg="#25272C", card_fg="#E0E2E6",
+                popover_bg="#2E3138", popover_fg="#E0E2E6", dialog_bg="#2E3138", dialog_fg="#E0E2E6",
+                accent_bg="#D99B26", accent_fg="#1A1B1E", accent="#D99B26"),
     "analog": dict(window_bg="#1d1b18", window_fg="#efe3c8", view_bg="#24211d", view_fg="#efe3c8",
                    headerbar_bg="#26231f", headerbar_fg="#e6d6b0", card_bg="#2a2722", card_fg="#efe3c8",
                    popover_bg="#2a2722", popover_fg="#efe3c8", dialog_bg="#2a2722", dialog_fg="#efe3c8",
@@ -39,6 +45,9 @@ PALETTE = {
                  font="Monospace", radius=0.0, glow=True, meter="segments"),
     "analog": dict(before=(0.94, 0.89, 0.78, 0.16), after=[(1.0, 0.71, 0.28)], target=(0.85, 0.27, 0.20),
                    font="Sans", radius=2.0, glow=False, meter="vu"),
+    "pro": dict(before=(0.878, 0.886, 0.902, 0.10), after=[(0.851, 0.608, 0.149)], target=(0.231, 0.604, 0.698),
+                font="Sans", radius=2.0, glow=False, meter="zones", outline=True, tnum=True,
+                grid=(0.220, 0.235, 0.267), label=(0.541, 0.561, 0.596)),
 }
 
 CURRENT = "system"

@@ -38,6 +38,10 @@ class AlbumChart(Gtk.DrawingArea):
         fd = Pango.FontDescription.from_string(f"{fam} {'Bold ' if bold else ''}{size * 0.75:.1f}")
         lay.set_font_description(fd)
         lay.set_text(s, -1)
+        if themes.palette().get("tnum"):                 # cyfry tabelaryczne – liczby nie „pływają” na boki
+            attrs = Pango.AttrList()
+            attrs.insert(Pango.attr_font_features_new("tnum 1"))
+            lay.set_attributes(attrs)
         return lay
 
     def _text(self, cr, x, y, s, size=11, align="left", alpha=1.0, bold=False, rgb=None):
@@ -59,18 +63,19 @@ class AlbumChart(Gtk.DrawingArea):
         cr.set_source_rgba(c.red, c.green, c.blue, alpha)
 
     @staticmethod
-    def _bar(cr, x, y0, y1, w, r=3.0):
+    def _bar(cr, x, y0, y1, w, r=3.0, fill=True):
         h = y0 - y1
         if h <= 0:
             return
-        r = min(r, w / 2, h)
+        r = max(0.0, min(r, w / 2, h))
         cr.new_sub_path()
         cr.arc(x + w - r, y1 + r, r, -math.pi / 2, 0)
         cr.line_to(x + w, y0)
         cr.line_to(x, y0)
         cr.arc(x + r, y1 + r, r, math.pi, 3 * math.pi / 2)
         cr.close_path()
-        cr.fill()
+        if fill:
+            cr.fill()
 
     def _before_src(self, cr):
         b = themes.palette()["before"]
@@ -97,6 +102,16 @@ class AlbumChart(Gtk.DrawingArea):
             for grow, alpha in ((7, 0.07), (4, 0.10), (2, 0.14)):
                 cr.set_source_rgba(*c, alpha)
                 self._bar(cr, x - grow, base, top - grow, bw + 2 * grow, r + grow)
+        if pal.get("outline"):                            # półprzezroczyste wypełnienie + cienki obrys
+            c = pal["after"][0]
+            a = 1.0 if self.measured else 0.6
+            cr.set_source_rgba(*c, 0.22 * a)
+            self._bar(cr, x, base, top, bw, r)
+            cr.set_source_rgba(*c, 0.95 * a)
+            cr.set_line_width(1.5)
+            self._bar(cr, x + 0.75, base, top + 0.75, bw - 1.5, r, fill=False)
+            cr.stroke()
+            return
         self._after_src(cr, top, base)
         self._bar(cr, x, base, top, bw, r)
 
@@ -122,13 +137,18 @@ class AlbumChart(Gtk.DrawingArea):
         cr.set_line_width(1)
         v = math.ceil(lo / step) * step
         while v <= hi:
-            self._fg(cr, 0.10)
+            if pal.get("grid"):
+                cr.set_source_rgb(*pal["grid"])
+            else:
+                self._fg(cr, 0.10)
             cr.move_to(left, round(Y(v)) + 0.5)
             cr.line_to(w - right, round(Y(v)) + 0.5)
             cr.stroke()
-            self._text(cr, left - 8, Y(v) + 4, _minus(f"{v:d}"), 10, "right", 0.55)
+            self._text(cr, left - 8, Y(v) + 4, _minus(f"{v:d}"), 10, "right", 1.0 if pal.get("label") else 0.55,
+                       rgb=pal.get("label"))
             v += step
-        self._text(cr, left - 8, top - 12, "LUFS", 10, "right", 0.55)
+        self._text(cr, left - 8, top - 12, "LUFS", 10, "right", 1.0 if pal.get("label") else 0.55,
+                   rgb=pal.get("label"))
 
         # słupki
         n = len(self.items)

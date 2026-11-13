@@ -35,7 +35,7 @@ class MainWindow(Adw.ApplicationWindow):
         lang.append("English", "app.language::en")
         menu.append_submenu(tr("language"), lang)
         theme = Gio.Menu()
-        for k in ("system", "neon", "holo", "analog"):
+        for k in ("system", "neon", "holo", "analog", "pro"):
             theme.append(tr("theme_" + k), f"app.theme::{k}")
         menu.append_submenu(tr("theme"), theme)
         menu.append(tr("about"), "app.about")

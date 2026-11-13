@@ -338,6 +338,7 @@ S["pl"].update({
     "theme_neon": "Neon Studio",
     "theme_holo": "Hologram",
     "theme_analog": "Konsola analogowa",
+    "theme_pro": "Studio Pro (ergonomiczny)",
 })
 S["en"].update({
     "a_master": "Mix mastering",
@@ -451,6 +452,7 @@ S["en"].update({
     "theme_neon": "Neon Studio",
     "theme_holo": "Hologram",
     "theme_analog": "Analog console",
+    "theme_pro": "Studio Pro (ergonomic)",
 })
 
 

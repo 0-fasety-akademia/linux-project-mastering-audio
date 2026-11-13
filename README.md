@@ -1,208 +1,187 @@
 # linux-project-mastering-audio — Linux Project Mastering Audio
 
-Prosta aplikacja na Ubuntu z dwiema zakładkami:
+A focused mastering app for Ubuntu with two tabs:
 
-1. **Wokal** – mastering ścieżek wokalu (wokal główny, dopowiedzi, chórki…), odsłuch na żywo, suwaki
-   głośności i pogłosu/echa dla każdej ścieżki i przycisk **SCAL WSZYSTKIE ŚCIEŻKI W JEDNĄ** → jeden końcowy WAV.
-2. **Album** – gotowe, zmiksowane utwory: **normalizacja głośności całej płyty** (bez zmiany brzmienia)
-   i przycisk **NORMALIZUJ**.
+1. **Vocals** – master your vocal tracks (lead, ad-libs, backing vocals…), listen live with per-track volume and
+   reverb/echo sliders, then **MERGE ALL TRACKS INTO ONE** → a single final WAV.
+2. **Album** – finished, mixed songs: optional light **mix mastering**, **loudness normalization of the whole album**,
+   an album chart and fair **A/B listening**, then **NORMALIZE**.
 
-To nie jest drugi Audacity – tylko to, co potrzebne.
-
-*English version below.*
+It is not another Audacity – just what you need. The interface is available in **English and Polish**.
 
 ---
 
-## Zakładka WOKAL
+## Vocals tab
 
-1. Przeciągnij **1–10 plików WAV** (mono lub stereo; także FLAC/AIFF). Ścieżki dostają litery **A, B, C…** według nazw plików.
-   Wszystkie powinny zaczynać się w tym samym momencie (tak jak eksportuje je DAW).
-2. Wybierz **opcję masteringu** – kafelek ustawia wszystkie ścieżki, a przy każdej ścieżce możesz ją zmienić osobno:
+1. Drop **1–10 WAV files** (mono or stereo; FLAC/AIFF work too). Tracks get the letters **A, B, C…** by file name.
+   They should all start at the same moment (the way a DAW exports stems).
+2. Pick a **mastering option** – the tile sets every track, and each track can be changed on its own:
 
-   | Opcja | Charakter | Pogłos / echo (start) |
+   | Option | Character | Reverb / echo (start) |
    |---|---|---|
-   | **Studio** | czysty, przejrzysty | delikatny pogłos płytowy (15%) |
-   | **Radio** | do przodu, jasny, mocniej skompresowany | krótkie echo „slap” + mały pogłos (20%) |
-   | **Ciepły** | miękki, pełny, lekkie nasycenie | aksamitny, dłuższy pogłos (28%) |
-   | **Przestrzeń** | dużo powietrza | duży pogłos + echo ping-pong (40%) |
-   | **Rap** | twardy, wyraźny, blisko | sucho, bardzo krótkie echo (12%) |
-   | **Pop** | jasny i do przodu, gęsta kompresja | pogłos + krótkie echo (22%) |
-   | **Akustyczny** | naturalny, lekka kompresja | mała sala (18%) |
-   | **R&B / Soul** | ciepły i gładki | długi pogłos + echo ping-pong (30%) |
-   | **Mowa** | podcast, lektor – sucho i wyraźnie | bez efektu (0%) |
-   | **Lo-fi** | wąskie pasmo, nasycenie, vintage | mały pogłos + echo (25%) |
-   | **AUTO-TUNE** | twarda korekcja wysokości – robotyczny wokal | pogłos + echo ping-pong (22%) |
-   | **MANUAL** | wszystko ustawiasz sam suwakami | – |
+   | **Studio** | clean and clear | subtle plate reverb (15%) |
+   | **Radio** | upfront, bright, firmer compression | short slap echo + small reverb (20%) |
+   | **Warm** | soft and full, light saturation | velvet, longer reverb (28%) |
+   | **Space** | lots of air | big reverb + ping-pong echo (40%) |
+   | **Rap** | hard, crisp, close | dry, very short echo (12%) |
+   | **Pop** | bright and upfront, dense compression | reverb + short echo (22%) |
+   | **Acoustic** | natural, light compression | small room (18%) |
+   | **R&B / Soul** | warm and smooth | long reverb + ping-pong echo (30%) |
+   | **Speech** | podcast, voice-over – dry and clear | no effect (0%) |
+   | **Lo-fi** | narrow band, saturation, vintage | small reverb + echo (25%) |
+   | **AUTO-TUNE** | hard pitch correction – the robotic vocal effect | reverb + ping-pong echo (22%) |
+   | **MANUAL** | you set everything with sliders | – |
 
-   Po wyborze **MANUAL** pod ścieżkami pojawiają się kafle z suwakami (2–4 w rzędzie, zależnie od szerokości okna):
-   **Barwa (EQ)** – filtr dołu, ciało 200 Hz, błoto 350 Hz, obecność 3,5 kHz, powietrze 12 kHz;
-   **Kompresja** – próg, stopień, atak, powrót; **De-esser i nasycenie**; **Przestrzeń** – pogłos, jego opóźnienie,
-   echo i powtórzenia echa. Zmiany słychać po ok. sekundzie od puszczenia suwaka; ustawienia są zapamiętywane.
+   Every option is a chain of: low-cut filter, mud/presence correction, a two-pass **de-esser** (tames s / sh / ch),
+   compression, saturation and air on top; the effect (reverb/echo) is sent after filtering, as in a pro mix.
+   **AUTO-TUNE** detects the pitch every 10 ms and snaps it hard to the nearest semitone (A = 440 Hz) using its own
+   TD-PSOLA engine – no extra libraries.
 
-   Każda opcja to: filtr dolnozaporowy, korekcja „błota” i obecności, **de-esser** (przycisza syczące s/sz/cz – dwa przebiegi),
-   kompresja, nasycenie, blask w górze pasma, a efekt (pogłos/echo) jest wysyłany po filtrze, jak w profesjonalnym miksie.
-3. Przy każdej ścieżce:
-   - **Głośność** (−24…+12 dB),
-   - **Pogłos / echo** (0–100%; 0 = bez efektu),
-   - **Wycisz** (wyciszona ścieżka nie trafia do wyniku).
-4. **Odsłuch na żywo** (pasek na dole): suwaki działają w trakcie odtwarzania, miernik pokazuje szczyt sumy
-   i ostrzega, gdy jest za głośno.
-5. **SCAL WSZYSTKIE ŚCIEŻKI W JEDNĄ** – wybierasz nazwę pliku i dostajesz **jeden WAV 24-bit** (częstotliwość
-   pierwszej ścieżki). Wynik brzmi dokładnie tak jak odsłuch. Jeśli suma przekroczy −1 dBTP, szczyty zabezpiecza limiter.
+   With **MANUAL**, slider tiles appear under the tracks (2–4 per row depending on window width):
+   **Tone (EQ)** – low cut, body 200 Hz, mud 350 Hz, presence 3.5 kHz, air 12 kHz; **Compression** – threshold, ratio,
+   attack, release; **De-esser & saturation**; **Space** – reverb, pre-delay, echo and echo repeats. Changes are heard
+   about a second after you release a slider, and the settings are remembered.
+3. For every track: **Volume** (−24…+12 dB), **Reverb / echo** (0–100%; 0 = off), **Mute** (muted tracks are left out).
+4. **Live listening** (bar at the bottom): sliders work during playback, the meter shows the peak of the sum and warns
+   when it is too loud. Seeking is safe: the jump happens when the slider stops, and if playback ever stalls the
+   player rebuilds itself at the same position.
+5. **MERGE ALL TRACKS INTO ONE** – choose a file name and get **one 24-bit WAV** (sample rate of the first track) that
+   sounds exactly like the live preview. If the sum goes above −1 dBTP, a true-peak limiter protects the peaks.
 
-Przetworzone ścieżki są zapamiętywane w `~/.cache/linux-project-mastering-audio/vocal/`, więc powrót do opcji, którą
-już słuchałeś, jest natychmiastowy (cache można bezpiecznie usuwać).
+Processed tracks are cached in `~/.cache/linux-project-mastering-audio/vocal/`, so going back to an option you have
+already heard is instant (the cache is safe to delete).
 
-## Zakładka ALBUM
+## Album tab
 
-1. Przeciągnij gotowe utwory (kolejność = nazwy plików). Przy każdym widać głośność (LUFS), szczyt (dBTP)
-   i **przewidywaną zmianę** dla wybranych ustawień.
-2. **Płyta w liczbach** – wykres: głośność każdego utworu przed i po (LUFS), linia celu i zakres dynamiki (LRA).
-   Przed normalizacją słupki „po” są przewidywane, po normalizacji – zmierzone.
-3. **Mastering miksu** (opcjonalnie, przed normalizacją; **Odsłuchaj próbkę** gra 20 s najgłośniejszego fragmentu
-   wybranego utworu z tym masteringiem i poziomem w odsłuchu A/B, zanim znormalizujesz całą płytę): **Bez masteringu**, **Delikatny**, **Ciepły**,
-   **Nowoczesny**, **Mocny** – filtr subsoniczny, korekcja barwy, kompresja „sklejająca”, delikatne nasycenie.
-   Głośność utworu po masteringu zostaje taka sama, więc wyrównanie płyty działa jak wcześniej.
-4. **Poziom docelowy** (z pułapem szczytów dobranym do celu):
-   - Streaming – Spotify, YouTube (−14 LUFS) – szczyty do −1 dBTP
-   - Apple Music (−16 LUFS) – szczyty do −1 dBTP
-   - CD / sklep (−10 LUFS) – szczyty do **−2 dBTP**
-   - Głośno – klub, rap (−8 LUFS) – szczyty do **−2 dBTP**
-   - **Własny (MANUAL)** – wpisujesz poziom od −30 do −5 LUFS (pod polem jest podpowiedź z typowymi wartościami);
-     pułap −1 dBTP do −14 LUFS włącznie, głośniej −2 dBTP
+Two equal columns – tracks and the chart on the left, settings on the right – with A/B listening below at full width
+(a single column in a narrow window).
 
-   Głośne mastery po przekodowaniu w serwisach (Ogg, AAC, Opus) zyskują wyższe szczyty, dlatego dostają 1 dB więcej zapasu
-   (tak zaleca Spotify dla materiału głośniejszego niż −14 LUFS).
-5. **Sposób wyrównania:**
-   - **Równe refreny (zalecane)** – głośne fragmenty wszystkich utworów na tym samym poziomie; spokojne zwrotki zachowują dynamikę,
-   - **Równa średnia głośność** – identyczny LUFS każdego utworu,
-   - **Jedno wzmocnienie dla płyty** – najgłośniejszy utwór trafia w cel, reszta dostaje to samo wzmocnienie (zachowuje różnice z miksu).
-6. **Zapis:** WAV (CD 16 bit/44,1 kHz z ditherem albo Hi-Res 24 bit), MP3 320 kbps, MP4 (AAC 256 kbps, koder FDK) –
-   z okładką PNG i tagami (tytuł z nazwy pliku, wykonawca, album, numer).
-7. **NORMALIZUJ** → folder **`normalized/`** obok oryginałów + `raport.txt` (przed/po, refren, LRA
-   i to, o ile dB limiter ściął szczyty). Jeśli w którymś utworze ściął więcej niż 3 dB, aplikacja ostrzega – master może brzmieć płasko.
-8. **Odsłuch A/B** (po normalizacji): wybierasz utwór i przełączasz **A · oryginał** / **B · po** w trakcie odtwarzania.
-   Obie wersje grają z **tą samą głośnością** (głośniejsza jest ściszana), więc słychać tylko różnicę brzmienia –
-   bez złudzenia, że „głośniej = lepiej”. Pod odtwarzaczem dokładny pomiar wg EBU R128 dla A i B jednocześnie:
-   głośność **chwilowa** (400 ms), **krótkookresowa** (3 s) i **zintegrowana**, odświeżana co 100 ms;
-   kolumna słyszanej wersji jest podświetlona, a miernik pokazuje jej głośność chwilową.
+1. Drop finished tracks (order = file names). Each one shows its loudness (LUFS), true peak (dBTP) and the
+   **predicted change** for the chosen settings.
+2. **The album in numbers** – a chart of every track's loudness before and after (LUFS), the target line and the
+   loudness range (LRA). Before normalizing, the "after" bars are predicted; afterwards they are measured.
+3. **Mix mastering** (optional, before normalization): **No mastering**, **Gentle**, **Warm**, **Modern**, **Punchy** –
+   subsonic filter, tone correction, glue compression and gentle saturation. The track's loudness stays the same,
+   so album levelling works exactly as before. **Listen to preview** plays 20 s of the loudest part of the chosen
+   track with that mastering and level straight in the A/B player – before you normalize the whole album.
+4. **Target level** (with a peak ceiling matched to the target):
+   - Streaming – Spotify, YouTube (−14 LUFS) – peaks up to −1 dBTP
+   - Apple Music (−16 LUFS) – peaks up to −1 dBTP
+   - CD / store (−10 LUFS) – peaks up to **−2 dBTP**
+   - Loud – club, rap (−8 LUFS) – peaks up to **−2 dBTP**
+   - **Custom (MANUAL)** – type any level from −30 to −5 LUFS (a hint with typical values is shown below the field);
+     ceiling −1 dBTP up to −14 LUFS, louder −2 dBTP
 
-Bez masteringu brzmienie się nie zmienia: tylko wzmocnienie + ochrona szczytów (miękki clipper i limiter true-peak).
-MP3 i MP4 są sprawdzane **po zakodowaniu** i w razie przesteru automatycznie poprawiane.
+   Loud masters gain higher peaks when streaming services re-encode them (Ogg, AAC, Opus), so they get 1 dB more
+   headroom – as Spotify recommends for material louder than −14 LUFS.
+5. **Matching method:**
+   - **Equal choruses (recommended)** – the loud parts of all songs at the same level; quiet verses keep their dynamics,
+   - **Equal average** – identical LUFS for every song,
+   - **One album gain** – the loudest song hits the target and the rest get the same gain (mix differences stay).
+6. **Output:** WAV (CD 16 bit / 44.1 kHz with dither, or Hi-Res 24 bit), MP3 320 kbps, MP4 (AAC 256 kbps, FDK
+   encoder) – with PNG cover art and tags (title from the file name, artist, album, track number).
+7. **NORMALIZE** → a **`normalized/`** folder next to the originals + a report (before/after, chorus level, LRA and how
+   many dB the limiter cut). If the limiter cut more than 3 dB on a track, the app warns you – the master may sound flat.
+8. **A/B listening** (after normalizing or with a preview): pick a track and switch **A · original** / **B · after**
+   while it plays. Both versions play at **the same loudness** (the louder one is turned down), so you hear only the
+   difference in sound – no "louder = better" illusion. Below the player: precise **EBU R128** readings for A and B
+   at once – **momentary** (400 ms), **short-term** (3 s) and **integrated** – refreshed every 100 ms, plus **two meters
+   side by side** in the style of the current theme (the heard version is highlighted). Changing the mastering,
+   target, method or track list stops an outdated A/B with a hint; going back to the last settings restores it.
 
-## Motywy
+Without mix mastering the sound does not change: only gain + peak protection (soft clipper and true-peak limiter).
+MP3 and MP4 files are checked **after encoding** and corrected automatically if the codec pushed the peaks too high.
 
-Menu (☰) → **Motyw** – zmiana od razu, bez restartu, zapamiętywana:
+## Themes
 
-- **Systemowy** – standardowy wygląd Ubuntu/GNOME (jasny lub ciemny jak system),
-- **Neon Studio** – ciemne szkło i gradient cyjan → fiolet → róż z ikony aplikacji, świecące słupki i miernik,
-- **Hologram** – wygląd ekranu z kokpitu: siatka, ostre krawędzie, cyfry o stałej szerokości, segmentowy miernik,
-- **Konsola analogowa** – grafit i bursztyn, przyciski jak na sprzęcie studyjnym, wskazówkowy miernik VU w odsłuchu A/B.
+Menu (☰) → **Theme** – switches live, no restart, and is remembered:
 
-## Mini-terminal
+- **System** – the standard Ubuntu/GNOME look (light or dark like the system),
+- **Neon Studio** – dark glass and the cyan → violet → pink gradient of the app icon, glowing bars and meters,
+- **Hologram** – a cockpit HUD: grid, sharp edges, fixed-width digits, segmented meters,
+- **Analog console** – graphite and amber, hardware-style buttons, needle VU meters in A/B,
+- **Studio Pro (ergonomic)** – made for long sessions: no pure black or white, panels separated by slightly lighter
+  backgrounds instead of bright frames, a single muted amber accent, tabular digits that don't jitter, translucent
+  chart bars with a thin outline, and calm meter zones (green – safe, amber – caution, red only at the very top).
 
-Przycisk z ikoną terminala w pasku tytułu (prawy górny róg) włącza małe okienko terminala, które na żywo pokazuje,
-co robi silnik: wczytywanie i pomiary (LUFS, true peak), kolejne etapy obróbki wokalu (filtr, EQ, de-esser, kompresja,
-pogłos, echo), budowę miksera GStreamer, kolejne iteracje wzmocnienia i limitera przy normalizacji, kontrolę szczytów
-po kodowaniu MP3/MP4 i zapis plików. Przy starcie jest schowany – otwiera się dopiero po kliknięciu ikony terminala.
+## Mini terminal
 
-## Pozostałe
+The terminal button in the title bar (top right) opens a small window that shows live what the engine is doing:
+loading and measurements (LUFS, true peak), every vocal processing step (filter, EQ, de-esser, compression, reverb,
+echo), the GStreamer mixer, gain and limiter iterations during normalization, peak checks after MP3/MP4 encoding and
+file writes. It is hidden at start-up and opens only when you click the icon.
 
-- Ekran startowy z wersją, interfejs **PL / EN** (automatycznie wg systemu, przełącznik w menu).
-- Ikona w menu aplikacji i docku przełącza się **dark / light** razem z motywem systemu, także gdy aplikacja jest zamknięta.
-- Zamknięcie okna kończy aplikację (w trakcie pracy z pytaniem o potwierdzenie). Powiadomienie po zakończeniu.
-- Oryginalne pliki nigdy nie są zmieniane.
+## Other
 
-## Instalacja
+- Splash screen with the version; **English / Polish** interface (follows the system, switch in the menu).
+- The icon in the app menu and dock follows the system **dark / light** theme, even while the app is closed.
+- Closing the window quits the app (asks first while work is in progress). A notification when work is done.
+- Original files are never changed.
 
-Najnowszy plik `linux-project-mastering-audio_<wersja>_all.deb` pobierz ze [strony Releases](https://github.com/jgu-linux-apps/linux-project-mastering-audio/releases/latest):
+## Installation
+
+Download the latest `linux-project-mastering-audio_<version>_all.deb` from the
+[Releases page](https://github.com/jgu-linux-apps/linux-project-mastering-audio/releases/latest):
 
 ```bash
-sudo apt install ./linux-project-mastering-audio_<wersja>_all.deb
+sudo apt install ./linux-project-mastering-audio_<version>_all.deb
 ```
 
-Wymagania: Ubuntu 24.04+ (libadwaita ≥ 1.5). Zależności instalują się same: GTK4/libadwaita, GStreamer,
-numpy, scipy, python3-soundfile, ffmpeg, fdkaac (repozytorium *multiverse*, w standardowym Ubuntu włączone).
+Requirements: Ubuntu 24.04+ (libadwaita ≥ 1.5). Dependencies install automatically: GTK4/libadwaita, GStreamer,
+numpy, scipy, python3-soundfile, ffmpeg, fdkaac (from the *multiverse* repository, enabled on standard Ubuntu).
 
 ```bash
 linux-project-mastering-audio --version
-linux-project-mastering-audio --icon-sync      # jednorazowe przełączenie ikony
-linux-project-mastering-audio pliki*.wav       # otwórz z plikami (trafiają do aktywnej zakładki)
+linux-project-mastering-audio --icon-sync      # switch the icon once
+linux-project-mastering-audio files*.wav       # open with files (they go to the active tab)
 ```
 
-## Budowanie ze źródeł
+## Building from source
 
-Kod źródłowy jest w katalogu `src/` repozytorium; paczek `.deb` nie ma w gicie, są w [Releases](https://github.com/jgu-linux-apps/linux-project-mastering-audio/releases).
-Wypchnięcie tagu `vX.Y.Z` zgodnego z `VERSION` w `src/src/pma/__init__.py` uruchamia GitHub Actions
-(`.github/workflows/release.yml`), które budują paczkę i publikują wydanie. Polecenia uruchamiaj w `src/`:
+The source code lives in the repository's `src/` folder; `.deb` packages are not in git, they are on
+[Releases](https://github.com/jgu-linux-apps/linux-project-mastering-audio/releases). Pushing a `vX.Y.Z` tag that matches
+`VERSION` in `src/src/pma/__init__.py` runs GitHub Actions (`.github/workflows/release.yml`), which build the package
+and publish the release. Run the commands inside `src/`:
 
 ```bash
-python3 tools/make_assets.py data          # ikony + ekran startowy
-./packaging/build-deb.sh                    # -> dist/linux-project-mastering-audio_<wersja>_all.deb
-./bin/linux-project-mastering-audio         # uruchomienie bez instalacji
+python3 tools/make_assets.py data          # icons + splash screen
+./packaging/build-deb.sh                    # -> dist/linux-project-mastering-audio_<version>_all.deb
+./bin/linux-project-mastering-audio         # run without installing
 ```
 
-Struktura: `src/pma/engine/vocal.py` (mastering wokalu, efekty, scalanie), `src/pma/engine/normalize.py`
-(normalizacja albumu), `src/pma/engine/dsp.py` (LUFS BS.1770-4, true peak, kompresor, limiter),
-`src/pma/engine/export.py` (WAV/MP3/MP4), `src/pma/ui/` (GTK4/libadwaita, mikser na żywo w GStreamer),
-`tests/` (generatory testowych ścieżek).
+Layout: `src/pma/engine/vocal.py` (vocal mastering, effects, auto-tune, merging), `src/pma/engine/master.py`
+(mix mastering), `src/pma/engine/normalize.py` (album normalization), `src/pma/engine/dsp.py` (BS.1770-4 LUFS,
+true peak, compressor, limiter), `src/pma/engine/export.py` (WAV/MP3/MP4), `src/pma/ui/` (GTK4/libadwaita, themes,
+live GStreamer mixer and A/B player), `tests/` (test track generators).
 
-## Historia wersji
+## Version history
 
-- **0.5.1** – Wokal: nowa opcja **AUTO-TUNE** – twarda korekcja wysokości do najbliższego półtonu (charakterystyczny
-  „robotyczny” wokal; własny silnik TD-PSOLA, bez dodatkowych bibliotek); kafelek **MANUAL** przeniesiony na koniec.
-
-- **0.5.0** – Album: **próbka masteringu** – 20 s najgłośniejszego fragmentu wybranego utworu z wybranym masteringiem
-  i poziomem, od razu w odsłuchu A/B (bez normalizowania całej płyty); **dwa mierniki obok siebie** (A i B, w stylu
-  motywu, słyszana wersja podświetlona); zmiana masteringu, poziomu, sposobu albo listy utworów **zatrzymuje
-  nieaktualny odsłuch** z podpowiedzią (powrót do ustawień ostatniej normalizacji go przywraca); przycisk **NORMALIZUJ**.
-
-- **0.4.0** – zakładka Wokal: 5 nowych opcji (Pop, Akustyczny, R&B / Soul, Mowa, Lo-fi) i **MANUAL** z kaflami suwaków
-  (EQ, kompresja, de-esser i nasycenie, przestrzeń), szersza strona; Album: **własny poziom docelowy (MANUAL)**
-  z podpowiedzią, **dokładny pomiar LUFS na żywo w A/B** (chwilowa / krótkookresowa / zintegrowana), krótkie nazwy
-  na listach z opisem pod spodem (bez uciętych „…”), nazwy plików wokalu w dwóch liniach. Oraz wszystko poniżej
-  (wersja 0.3.0 nie była publikowana): zakładka Album: **mastering miksu** (Delikatny, Ciepły, Nowoczesny, Mocny), **pułap szczytów zależny od celu**
-  (−2 dBTP dla CD i „Głośno”), **wykres płyty** (LUFS przed/po, LRA), **odsłuch A/B z wyrównaną głośnością**,
-  w raporcie LRA i ścięcie limitera z ostrzeżeniem powyżej 3 dB; typograficzny minus w liczbach (−2,0 dBTP);
-  poprawiona statystyka kompresora w logu; link do strony projektu w „O programie” i w paczce;
-  **motywy**: Systemowy, Neon Studio, Hologram, Konsola analogowa (menu → Motyw), miernik poziomu w odsłuchu A/B.
-  Zakładka Album w **dwóch równych kolumnach** (utwory i wykres | ustawienia), odsłuch A/B pod spodem na całą szerokość;
-  w wąskim oknie jedna kolumna. Przewijanie w odsłuchu (A/B i Wokal) bez zawieszania: skok dopiero po zatrzymaniu suwaka,
-  a gdy odtwarzanie mimo to stanie, odtwarzacz sam się odbudowuje w tym samym miejscu.
-
-- **0.2.5** – licencja: aplikacja jest teraz na licencji Freeware License (No Modifications), zob. `LICENSE` — darmowe użytkowanie i udostępnianie bez zmian, bez prawa do modyfikacji; poza tym bez zmian w aplikacji.
-- **0.2.4** – bez zmian w aplikacji: kod w repozytorium w katalogu `src/`, paczka `.deb` na stronie GitHub Releases (budowana automatycznie dla każdego tagu wersji); README: instalacja z Releases.
-- **0.2.3** – mini-terminal schowany przy starcie, otwiera się dopiero po kliknięciu ikony.
-- **0.2.2** – podpis „made by: JGu / Supported by Claude” na ekranie startowym i w „O programie”; poprawna odmiana liczebników (1 utwór, 4 utwory, 5 utworów; 1 track / 2 tracks) i przecinek dziesiętny w polskiej wersji.
-- **0.2.1** – nazwa **Linux Project Mastering Audio** wszędzie (ekran startowy, okno, menu, raport); mini-terminal z podglądem pracy silnika; w raporcie albumu kolumna „Refren”.
-- **0.2.0** – nowy podział: zakładka **Wokal** (5 opcji masteringu wokalu z pogłosem/echem, suwaki głośności
-  i efektu, odsłuch na żywo z miernikiem, scalanie do jednego WAV) i zakładka **Album** (tylko normalizacja:
-  4 poziomy docelowe, 3 sposoby wyrównania).
-- **0.1.1** – usunięta ikona w trayu; zamknięcie w trakcie pracy pyta o potwierdzenie.
-- **0.1.0** – pierwsza wersja.
-
----
-
-# English
-
-**Linux Project Mastering Audio** – two tabs:
-
-- **Vocals:** drop 1–10 vocal WAVs (lead, ad-libs, backing…), pick one of 11 vocal mastering options
-  (Studio, Radio, Warm, Space, Rap, Pop, Acoustic, R&B / Soul, Speech, Lo-fi, AUTO-TUNE (hard pitch correction) – EQ, de-esser, compression, saturation,
-  air + reverb/echo) or **MANUAL** with slider tiles (EQ, compression, de-esser & saturation, space), set a **volume**
-  and **reverb/echo** slider per track while listening live (peak meter included), then **MERGE ALL TRACKS INTO ONE**
-  → a single 24-bit WAV that sounds exactly like the live preview, clip-protected at −1 dBTP.
-- **Album:** drop finished tracks and **NORMALIZE** for an even level:
-  targets Streaming (−14), Apple Music (−16), CD/store (−10), Loud (−8 LUFS), with a peak ceiling matched to the target
-  (−1 dBTP for streaming/Apple, −2 dBTP for loud masters) or a **custom (MANUAL) LUFS value**; methods equal choruses (recommended),
-  equal average loudness, or one album gain. Optional **mix mastering** (Gentle, Warm, Modern, Punchy),
-  an **album chart** (LUFS before/after, LRA) and **loudness-matched A/B listening** of original vs result with
-  live EBU R128 readings (momentary, short-term, integrated) and two side-by-side meters, plus a 20-second
-  mastering preview of the loudest part of any track before you normalize the whole album.
-  Export WAV / MP3 / MP4 with cover art and tags, plus a report with LRA and limiter warnings.
-
-Themes (menu → Theme): System, Neon Studio, Hologram, Analog console – switched live, with a themed level meter in A/B.
-PL/EN UI, a mini terminal (top-right) showing what the engine is doing live, splash with version, dark/light app icon that follows the system theme. Ubuntu 24.04+.
+- **0.5.1** – Vocals: new **AUTO-TUNE** option – hard pitch correction to the nearest semitone (own TD-PSOLA engine,
+  no extra libraries); the **MANUAL** tile moved to the end. New **Studio Pro (ergonomic)** theme. README in English only.
+- **0.5.0** – Album: **mastering preview** – 20 s of the loudest part of a chosen track with the selected mastering and
+  level, straight in A/B; **two meters side by side** (A and B, themed, heard version highlighted); changing the
+  settings **stops an outdated A/B** with a hint (going back restores it); the button now reads **NORMALIZE**.
+- **0.4.0** – Vocals: 5 new options (Pop, Acoustic, R&B / Soul, Speech, Lo-fi) and **MANUAL** with slider tiles,
+  wider page; Album: **custom target level (MANUAL)** with a hint, **live LUFS readings in A/B** (momentary /
+  short-term / integrated), short list labels with a description underneath (no truncated text), vocal file names on
+  two lines. Also everything developed as 0.3.0 (never published on its own): **mix mastering** (Gentle, Warm,
+  Modern, Punchy), **target-based peak ceiling** (−2 dBTP for CD and Loud), **album chart** (LUFS before/after, LRA),
+  **loudness-matched A/B listening**, LRA and limiter cut in the report with a warning above 3 dB, the **Neon Studio,
+  Hologram and Analog console themes**, the Album tab in **two equal columns**, robust seeking (debounced, with a
+  stall watchdog), typographic minus in numbers, project link in About and in the package.
+- **0.2.5** – licence: the app is now under the Freeware License (No Modifications), see `LICENSE` – free to use and
+  share unchanged, no right to modify; no other changes.
+- **0.2.4** – no app changes: source code in the repository's `src/` folder, the `.deb` on GitHub Releases (built
+  automatically for every version tag); README: installing from Releases.
+- **0.2.3** – mini terminal hidden at start-up, opens only after clicking its icon.
+- **0.2.2** – "made by: JGu / Supported by Claude" on the splash screen and in About; correct plural forms
+  (1 track / 2 tracks, and the Polish forms) and a decimal comma in the Polish version.
+- **0.2.1** – the name **Linux Project Mastering Audio** everywhere (splash, window, menu, report); mini terminal showing
+  the engine at work; a "Chorus" column in the album report.
+- **0.2.0** – new layout: a **Vocals** tab (5 vocal mastering options with reverb/echo, volume and effect sliders, live
+  listening with a meter, merge into one WAV) and an **Album** tab (normalization only: 4 targets, 3 matching methods).
+- **0.1.1** – tray icon removed; closing during work asks for confirmation.
+- **0.1.0** – first version.
 
 ---
 

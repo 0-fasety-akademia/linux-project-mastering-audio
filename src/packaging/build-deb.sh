@@ -42,7 +42,7 @@ Description: Linux Project Mastering Audio – vocal mastering and album loudnes
  set volume and effect per track while listening live, merge into one WAV.
  Album tab: normalize the loudness of finished tracks to an even level
  (WAV / MP3 / MP4 with cover art), optional mix mastering,
- album chart and loudness-matched A/B listening. PL / EN.
+ album chart, loudness-matched A/B listening and 5 themes. EN / PL.
 EOF
 
 cat > "$ROOT/DEBIAN/postinst" <<'EOF'

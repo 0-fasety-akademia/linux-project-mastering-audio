@@ -1,0 +1,70 @@
+/* Studio Pro (ergonomiczny): do długiej pracy przy wykresach.
+   Bez czystej czerni i bieli, hierarchia przez rozjaśnienie tła zamiast jasnych ramek,
+   jeden przygaszony akcent (bursztyn #D99B26), cyfry tabelaryczne, więcej oddechu między elementami. */
+window.background:not(.splash) {
+  background-image: none;
+  font-feature-settings: "tnum";
+}
+headerbar {
+  background: #1A1B1E;
+  box-shadow: inset 0 -1px #25272C;
+}
+preferencesgroup > box > box.header label.heading {
+  color: #8A8F98;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.dim-label, .dimmed, label.subtitle, .caption.dim-label {
+  color: #8A8F98;
+  opacity: 1;
+}
+.boxed-list, .card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: none;
+  background-color: #25272C;
+}
+.boxed-list > row { min-height: 56px; }
+.boxed-list > row:first-child { border-top-left-radius: 10px; border-top-right-radius: 10px; }
+.boxed-list > row:last-child { border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
+.master-btn {
+  background-image: none;
+  background-color: #D99B26;
+  color: #1A1B1E;
+  border-radius: 10px;
+  letter-spacing: 0.12em;
+  box-shadow: none;
+}
+button.suggested-action.circular {
+  background-image: none;
+  background-color: #D99B26;
+  color: #1A1B1E;
+  box-shadow: none;
+}
+button.ab-side:checked:not(.flat) {
+  background-image: none;
+  background-color: #D99B26;
+  color: #1A1B1E;
+  box-shadow: none;
+}
+.preset-card {
+  border: none;
+  background-image: none;
+  background-color: #25272C;
+}
+.preset-card:checked {
+  background-image: none;
+  background-color: alpha(#D99B26, 0.10);
+  box-shadow: inset 0 0 0 2px #D99B26;
+}
+.track-badge { background-image: none; background-color: #2E3138; color: #D99B26; }
+scale > trough { background-color: #2E3138; }
+scale > trough > highlight { background-image: none; background-color: #D99B26; }
+scale > trough > slider { background-color: #D4D7DD; box-shadow: 0 1px 2px alpha(black, 0.4); }
+progressbar.master-progress > trough > progress { background-image: none; background-color: #D99B26; }
+levelbar.peak-meter > trough > block.filled { background-image: none; background-color: #4CA66B; }
+levelbar.peak-meter > trough > block.hot { background-color: #D64545; }
+.lufs-value { color: #D4D7DD; opacity: 1; }
+.ab-heard { color: #D99B26; }
+.manual-tile { padding: 18px 20px; }
+.ab-stale { background-color: #2E3138; }

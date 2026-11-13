@@ -31,7 +31,8 @@ class ABMeter(Gtk.DrawingArea):
         GLib.timeout_add(33, self._tick)
 
     def _restyle(self):
-        self.set_content_height(118 if themes.palette()["meter"] == "vu" else 34)
+        kind = themes.palette()["meter"]
+        self.set_content_height(118 if kind == "vu" else 38 if kind == "zones" else 34)
         self.queue_draw()
 
     def set_level(self, db):
@@ -126,6 +127,44 @@ class ABMeter(Gtk.DrawingArea):
             cr.set_source_rgba(*c, 0.95 if on else 0.10)
             cr.rectangle(x, y, sw, bh)
             cr.fill()
+
+    def _draw_zones(self, cr, w, h):
+        """Studio Pro: płaski pasek, stonowane strefy – zieleń (bezpiecznie), bursztyn (uwaga),
+        czerwień tylko przy samej górze skali; podziałka z opisem w szarości."""
+        bh, y = 12, 4
+        cr.set_source_rgb(0.180, 0.192, 0.220)           # #2E3138
+        self._rr(cr, 0, y, w, bh, 3)
+        cr.fill()
+        zones = ((FLOOR, -12.0, (0.298, 0.651, 0.420)), (-12.0, -3.0, (0.851, 0.627, 0.212)),
+                 (-3.0, 0.0, (0.839, 0.271, 0.271)))
+        v = self.value
+        cr.save()
+        self._rr(cr, 0, y, w, bh, 3)
+        cr.clip()
+        for lo, hi, c in zones:
+            if v <= lo:
+                break
+            x0, x1 = w * _frac(lo), w * _frac(min(v, hi))
+            cr.set_source_rgb(*c)
+            cr.rectangle(x0, y, x1 - x0, bh)
+            cr.fill()
+        cr.restore()
+        if self.hold[0] > FLOOR + 1:
+            cr.set_source_rgb(0.878, 0.886, 0.902)
+            cr.rectangle(w * _frac(self.hold[0]) - 1, y - 2, 2, bh + 4)
+            cr.fill()
+        cr.select_font_face("Sans", 0, 0)
+        cr.set_font_size(10)
+        for db in (-36, -24, -18, -12, -6, -3, 0):
+            x = w * _frac(db)
+            cr.set_source_rgb(0.220, 0.235, 0.267)       # #383C44
+            cr.rectangle(round(x) - 0.5, y + bh + 2, 1, 4)
+            cr.fill()
+            lab = str(abs(db)) if db else "0"
+            ext = cr.text_extents(lab)
+            cr.set_source_rgb(0.541, 0.561, 0.596)       # #8A8F98
+            cr.move_to(min(max(0, x - ext.width / 2), w - ext.width), y + bh + 16)
+            cr.show_text(lab)
 
     def _draw_vu(self, cr, w, h):
         pw = min(w, 300.0)
